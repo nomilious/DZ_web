@@ -23,7 +23,6 @@
 </template>
 
 <script setup>
-// Props
 defineProps({
   data: {
     required: true,
