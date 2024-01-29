@@ -24,7 +24,6 @@ export default class DB {
         });
     }
     // '*task*' === '*request*'
-    //TODO: if delete worker, delete and it's testings
     async connect() {
         try {
             await this.#dbClient.connect();
@@ -41,7 +40,7 @@ export default class DB {
     async getWorkers() {
         try {
             const res = await this.#dbClient.query(
-                "SELECT * FROM WORKERS ORDER BY FIO;"
+                "SELECT * FROM WORKER ORDER BY FIO;"
             );
             return res.rows;
         } catch (error) {
@@ -145,7 +144,7 @@ export default class DB {
                 ),
             };
         try {
-            if (this.checkDateOverlap())
+            if (this.checkDateOverlap(taskId, workerId))
                 throw new Error("Date overlap detected. Cannot assignTask.");
 
             await this.#dbClient.query(
@@ -202,8 +201,41 @@ export default class DB {
             return Promise.reject(error);
         }
     }
-    async createTask({ ID, DATE_START, DATE_END, EQUIPMENT_ID, WORKER_ID }) {}
+    async createTask({
+        id = null,
+        dateStart = null,
+        dateEnd = null,
+        equipmentId = null,
+    }) {
+        if (!id || !dateStart || !dateEnd || !equipmentId)
+            throw {
+                type: "client",
+                error: new Error(
+                    `createTask() wrong params (${Object.entries({
+                        id,
+                        dateEnd,
+                        equipmentId,
+                        dateStart,
+                    })
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join(",")})`
+                ),
+            };
+        try {
+            if (!this.checkEquipmentAvailability(equipmentId))
+                throw new Error(
+                    "Lack of equipment for requests detected. Cannot createTask."
+                );
 
+            await this.#dbClient.query(
+                "INSERT INTO REQUEST(ID, DATE_START, DATE_END, EQUIPMENT_ID) VALUES ($1,$2,$3,$4);",
+                [id, dateStart, dateEnd, equipmentId]
+            );
+        } catch (error) {
+            console.log("Unable to createTask().");
+            return Promise.reject(error);
+        }
+    }
     async updateTask({
         id = null,
         dateStart = null,
@@ -256,7 +288,7 @@ export default class DB {
         try {
             if (
                 dateChangedFlag &&
-                this.checkDateOverlap(id, dateStart, dateEnd, updateFields[3])
+                this.checkDateOverlap(id, updateFields[3], dateStart, dateEnd)
             )
                 throw new Error("Date overlap detected. Cannot updateTask.");
 
@@ -266,7 +298,12 @@ export default class DB {
             return Promise.reject(error);
         }
     }
-    async checkDateOverlap(id, newDateStart, newDateEnd, rawWorkerId) {
+    async checkDateOverlap(
+        id = null,
+        rawWorkerId = null,
+        newDateStart = null,
+        newDateEnd = null
+    ) {
         try {
             // check if worker isn't occupied in the period [newDateStart,newDateEnd]
             const workerId = !rawWorkerId
@@ -305,6 +342,5 @@ export default class DB {
             throw error;
         }
     }
-    // TODO: add createTask()
-    // TODO: review checkEquipmentAvailability() usage
+    // TODO: review checkDateOverlap() usage
 }
