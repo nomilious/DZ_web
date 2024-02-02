@@ -30,7 +30,7 @@ app.use("*", (req, res, next) => {
 });
 
 // middleware for static app files
-app.use("/", express.static(path.resolve(__dirname, "../frontend/dist")));
+app.use("/", express.static(path.resolve(__dirname, "../dist")));
 
 app.get("/workers", async (req, res) => {
     try {
