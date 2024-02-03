@@ -48,6 +48,18 @@ export default class DB {
             return Promise.reject(error);
         }
     }
+    async getEquipment() {
+        try{
+            const res = await this.#dbClient.query(
+              "SELECT * FROM Equipment;"
+            );
+            return res.rows;
+
+        } catch (error) {
+            console.log("Unable to getEquipment().");
+            return Promise.reject(error);
+        }
+    }
     async getRequests() {
         try {
             const res = await this.#dbClient.query(
@@ -71,7 +83,7 @@ export default class DB {
             };
         try {
             await this.#dbClient.query(
-                "INSERT INTO WORKERS (id, FIO) VALUES ($1, $2);",
+                "INSERT INTO WORKER (id, FIO) VALUES ($1, $2);",
                 [id, fio]
             );
         } catch (error) {
@@ -131,20 +143,8 @@ export default class DB {
         }
     }
     async assignTask({ workerId = null, taskId = null }) {
-        if (!taskId || !workerId)
-            throw {
-                type: "client",
-                error: new Error(
-                    `assignTask() wrong params (${Object.entries({
-                        task_id: taskId,
-                        workerId,
-                    })
-                        .map(([key, value]) => `${key}: ${value}`)
-                        .join(",")})`
-                ),
-            };
         try {
-            if (this.checkDateOverlap(taskId, workerId))
+            if (await this.checkDateOverlap(taskId, workerId))
                 throw new Error("Date overlap detected. Cannot assignTask.");
 
             await this.#dbClient.query(
@@ -206,35 +206,24 @@ export default class DB {
         dateStart = null,
         dateEnd = null,
         equipmentId = null,
+        workerId= null
     }) {
-        if (!id || !dateStart || !dateEnd || !equipmentId)
-            throw {
-                type: "client",
-                error: new Error(
-                    `createTask() wrong params (${Object.entries({
-                        id,
-                        dateEnd,
-                        equipmentId,
-                        dateStart,
-                    })
-                        .map(([key, value]) => `${key}: ${value}`)
-                        .join(",")})`
-                ),
-            };
         try {
-            if (!this.checkEquipmentAvailability(equipmentId))
-                throw new Error(
-                    "Lack of equipment for requests detected. Cannot createTask."
-                );
+            if (!await this.checkEquipmentAvailability(equipmentId))
+                throw new Error("Lack of equipment for requests detected. Cannot createTask.");
 
             await this.#dbClient.query(
-                "INSERT INTO REQUEST(ID, DATE_START, DATE_END, EQUIPMENT_ID) VALUES ($1,$2,$3,$4);",
+                "INSERT INTO REQUESTS(ID, DATE_START, DATE_END, EQUIPMENT_ID) VALUES ($1,$2,$3,$4);",
                 [id, dateStart, dateEnd, equipmentId]
             );
+            // TODO decrement quantity
+            await this.assignTask({workerId, taskId:id})
+            //TODO if error => revert
         } catch (error) {
             console.log("Unable to createTask().");
             return Promise.reject(error);
         }
+
     }
     async updateTask({
         id = null,
@@ -307,7 +296,7 @@ export default class DB {
         try {
             // check if worker isn't occupied in the period [newDateStart,newDateEnd]
             const workerId = !rawWorkerId
-                ? await this.#dbClient.oneOrNone(
+                ? await this.#dbClient.query(
                       "SELECT ID FROM WORKER WHERE $1 = ANY(TASKS)",
                       [id]
                   )
@@ -316,9 +305,10 @@ export default class DB {
                 "SELECT COUNT(*) FROM REQUESTS WHERE WORKER_ID = $1 AND (($2 >= DATE_START AND $2 <= DATE_END) OR ($3 >= DATE_START AND $3 <= DATE_END))",
                 [workerId.id, newDateStart, newDateEnd]
             );
+
             const overlapCount = parseInt(result.rows[0].count);
 
-            return overlapCount > 0;
+            return overlapCount !== 0;
         } catch (error) {
             console.error("Error checking date overlap:", error);
             throw error;

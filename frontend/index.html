@@ -2,37 +2,58 @@
 <html lang="ru">
 
 <head>
-    <meta charset="UTF-8" />
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
-    <script type="module" src="script.js"></script>
-    <title>Custom Task Manager</title>
+  <meta charset="UTF-8" />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script type="module" src="script.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+  <title>Custom Request Manager</title>
 </head>
 
 <body>
-    <header class="app-header" id="app-header">
-        <h1 class="app-header__app-name">Custom task header</h1>
-        <div class="app-header__user-and-controls">
-            <div class="user-info">
-                <div class="user-info__avatar"></div>
-                <span class="user-info__username"> Keanu Reeves </span>
-            </div>
-            <label class="toggle-switch" id="theme-switch">
-                <input type="checkbox" class="toggle-switch__checkbox" />
-                <div class="toggle-switch__slider"></div>
-            </label>
-        </div>
-    </header>
-    <main class="app-main" id="app-main">
-        <ul class="workers-list">
-            <li class="workers-list__item worker-adder">
-                <button type="button" class="worker-adder__btn">
-                    &#10010; Добавить список
-                </button>
-                <input type="text" placeholder="Новый список" class="worker-adder__input" />
-            </li>
-        </ul>
-    </main>
+<header class="app-header" id="app-header">
+  <h1 class="app-header__app-name">Custom task header</h1>
+  <div class="app-header__user-and-controls">
+    <div class="user-info">
+      <div class="user-info__avatar"></div>
+      <span class="user-info__username"> Keanu Reeves </span>
+    </div>
+    <label class="toggle-switch" id="theme-switch">
+      <input type="checkbox" class="toggle-switch__checkbox" />
+      <div class="toggle-switch__slider"></div>
+    </label>
+  </div>
+</header>
+<main class="app-main" id="app-main">
+  <ul class="workers-list">
+    <li class="workers-list__item worker-adder">
+      <button type="button" class="worker-adder__btn">
+        &#10010; Добавить работника
+      </button>
+      <input type="text" placeholder="Новый список" class="worker-adder__input" />
+    </li>
+  </ul>
+  <dialog class="app-modal" id="myModal">
+    <h3>Введите запрос</h3>
+    <form method="dialog">
+      <div class="form-group">
+        <label for="startDate">Start Date:</label>
+        <input type="date" class="form-control" id="startDate" required>
+      </div>
+      <div class="form-group">
+        <label for="endDate">End Date:</label>
+        <input type="date" class="form-control" id="endDate" required>
+      </div>
+      <div class="form-group">
+        <label for="equipmentId">Select Equipment:</label>
+        <select class="form-control" id="equipmentId"></select>
+      </div>
+      <button type='submit'>Создать</button>
+    </form>
+  </dialog>
+
+</main>
 </body>
 
 </html>

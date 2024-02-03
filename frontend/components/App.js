@@ -1,5 +1,6 @@
-import Tasklist from './Tasklist'
+import Worker from './Worker.js'
 import AppModel from '../model/AppModel'
+import Equipment from './Equipment.js'
 
 export default class App {
   #workers = []
@@ -20,19 +21,17 @@ export default class App {
     if (event.target.value) {
       const workerId = crypto.randomUUID()
       try {
-        const res = await AppModel.addTasklists({
+        const res = await AppModel.addWorkers({
           id: workerId,
-          name: event.target.value,
-          position: this.#workers.length,
+          fio: event.target.value,
         })
-        console.log('add to model')
-        const newTasklist = new Tasklist({
+        console.log('added to model')
+        const newTasklist = new Worker({
           id: workerId,
           name: event.target.value,
-          position: this.#workers.length,
-          onDropTaskInTasklist: this.onDropTaskInTasklist,
-          onEditTask: this.onEditTask,
-          onDeleteTask: this.onDeleteTask,
+          onDropTaskInTasklist: this.onDropRequestIn,
+          onEditTask: this.onEditRequest,
+          onDeleteTask: this.onDeleteRequest,
         })
         console.log('created local')
 
@@ -50,7 +49,7 @@ export default class App {
     document.querySelector('.worker-adder__btn').style.display = 'inherit'
   }
 
-  onDropTaskInTasklist = async evt => {
+  onDropRequestIn = async evt => {
     evt.stopPropagation()
 
     const destTasklistElement = evt.currentTarget
@@ -65,8 +64,8 @@ export default class App {
 
     if (!destTasklistElement.querySelector(`[id="${movedTaskID}"]`)) return
 
-    const srcTasklist = this.#workers.find(worker => worker.workerID === srcTasklistID)
-    const destTasklist = this.#workers.find(worker => worker.workerID === destTasklistID)
+    const srcTasklist = this.#workers.find(worker => worker.id === srcTasklistID)
+    const destTasklist = this.#workers.find(worker => worker.id === destTasklistID)
 
     try {
       if (srcTasklistID !== destTasklistID) {
@@ -75,24 +74,24 @@ export default class App {
           srcTasklistId: srcTasklistID,
           destTasklistId: destTasklistID,
         })
-        const movedTask = srcTasklist.deleteTask({
+        const movedRequest = srcTasklist.deleteRequest({
           taskID: movedTaskID,
         })
-        destTasklist.addTask({ task: movedTask })
+        destTasklist.addRequest({ request: movedRequest })
 
-        srcTasklist.reorderTasks()
+        srcTasklist.reorderRequests()
       }
 
-      destTasklist.reorderTasks()
+      destTasklist.reorderRequests()
     } catch (error) {
       console.error(error)
     }
   }
 
-  onEditTask = async ({ taskID }) => {
+  onEditRequest = async ({ reqId }) => {
     let fTask = null
     for (let worker of this.#workers) {
-      fTask = worker.getTaskById({ taskID })
+      fTask = worker.getRequestById({ reqId })
       if (fTask) break
     }
 
@@ -102,25 +101,25 @@ export default class App {
     if (!newTaskText || newTaskText === curTaskText) return
     try {
       const res = await AppModel.editTasks({
-        id: taskID,
+        id: reqId,
         text: newTaskText,
       })
 
       fTask.taskText = newTaskText
 
-      document.querySelector(`[id="${taskID}"] span.task__text`).innerHTML = newTaskText
+      document.querySelector(`[id="${reqId}"] span.task__text`).innerHTML = newTaskText
       console.log(res)
     } catch (error) {
       console.error(error)
     }
   }
 
-  onDeleteTask = async ({ taskID }) => {
+  onDeleteRequest = async ({ reqId }) => {
     let fTask = null
     let fTasklist = null
     for (let worker of this.#workers) {
       fTasklist = worker
-      fTask = worker.getTaskById({ taskID })
+      fTask = worker.getRequestById({ reqId })
       if (fTask) break
     }
 
@@ -130,18 +129,37 @@ export default class App {
 
     // if (!taskShouldBeDeleted) return;
     try {
-      const res = await AppModel.deleteTasks({ id: taskID })
-      fTasklist.deleteTask({ taskID })
-      document.getElementById(taskID).remove()
+      const res = await AppModel.deleteTasks({ id: reqId })
+      fTasklist.deleteRequest({ reqId })
+      document.getElementById(reqId).remove()
       console.log(res)
     } catch (error) {
       console.log(error)
     }
   }
 
+  fillModalForm = async() => {
+    try {
+      const equipmentData = await AppModel.getEquipment();
+      const equipmentSelect = document.getElementById('equipmentId');
+      equipmentSelect.innerHTML = ""; // Clear existing options
+
+      equipmentData.forEach((equipment) => {
+        const option = document.createElement('option');
+        option.value = equipment.id;
+        option.text = equipment.title;
+        equipmentSelect.appendChild(option);
+      });
+
+    } catch (e) {
+      console.error('Error fillModalForm, ', e);
+    }
+  }
+
   async init() {
+    await this.fillModalForm()
     document.querySelector('.worker-adder__btn').addEventListener('click', event => {
-      event.target.style.display = 'none'
+      event.target.display = 'none'
 
       const input = document.querySelector('.worker-adder__input')
       input.style.display = 'inherit'
@@ -202,23 +220,30 @@ export default class App {
     })
     try {
       const workers = await AppModel.getWorkers()
-      console.log(`workers= ${workers}`)
+
       for (const worker of workers) {
-        const workerObject = new Tasklist({
+        const workerObject = new Worker({
           id: worker.id,
-          name: worker.fio,
-          onDropTaskInTasklist: this.onDropTaskInTasklist,
-          onEditTask: this.onEditTask,
-          onDeleteTask: this.onDeleteTask,
+          name: worker.name,
+          onDropRequestIn: this.onDropRequestIn,
+          onEditRequest: this.onEditRequest,
+          onDeleteRequest: this.onDeleteRequest,
         })
         this.#workers.push(workerObject)
         workerObject.render()
 
-        for (const task of worker.tasks) {
-          workerObject.onAddNewTaskLocal({
-            id: task.id,
-            text: task.text,
-            position: task.position,
+        for (const request of worker.requests) {
+          const {id, title, available} = request.equipment
+          const equipment = new Equipment({
+            id,
+            title,
+            available
+          })
+          workerObject.onAddNewRequestLocal({
+            id: request.id,
+            dateStart: request.dateStart,
+            dateEnd: request.dateEnd,
+            equipment: equipment
           })
         }
       }

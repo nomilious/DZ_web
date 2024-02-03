@@ -32,29 +32,32 @@ export default class AppModel {
   static async getWorkers() {
     return AppModel.fetchData('workers', 'GET')
   }
-  static async addworkers({ id = null, name = '', position = -1 }) {
+  static async getEquipment() {
+    return AppModel.fetchData('equipment', 'GET')
+  }
+  static async addWorkers({ id = null, fio = '' }) {
     return AppModel.fetchData(
       'workers',
       'POST',
       {
         id,
-        name,
-        position,
+        fio,
       },
       'Success addworkers'
     )
   }
-  static async addTasks({ id = null, text = '', position = -1, workerId = null }) {
+  static async addRequest({ id = null, startDate = '', endDate = '', equipmentId = null, workerId = null }) {
     return AppModel.fetchData(
-      'tasks',
+      'requests',
       'POST',
       {
         id,
-        text,
-        position,
+        startDate,
+        endDate,
+        equipmentId,
         workerId,
       },
-      'Success addTasks'
+      'Success addRequest'
     )
   }
   static async editTasks({ id = null, text = '', position = -1 }) {
