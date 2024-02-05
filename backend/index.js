@@ -30,7 +30,7 @@ app.use("*", (req, res, next) => {
 });
 
 // middleware for static app files
-app.use("/", express.static(path.resolve(__dirname, "../dist")));
+app.use("/", express.static(path.resolve(__dirname, "../frontend/build")));
 
 app.get("/workers", async (req, res) => {
     try {
@@ -43,10 +43,11 @@ app.get("/workers", async (req, res) => {
         // TRANSFORM RAW REQUEST
         const requests = requestsRaw.map(request => ({
             id: request.id,
-            dateStart: request.date_start,
-            dateEnd: request.date_end,
+            dateStart: request.date_start.toLocaleDateString('ru-Ru'),
+            dateEnd: request.date_end.toLocaleDateString('ru-Ru'),
             equipment: equipmentRaw.filter(equipment => request.equipment_id === equipment.id)[0]
         }))
+
         // TRANSFORM RAW workers
         const workers = workersRaw.map(worker => ({
             id: worker.id,
@@ -139,9 +140,10 @@ app.post("/requests", async (req, res) => {
     }
 });
 
+// TODO implement patch - worker, request; delete - worker, request
 const server = app.listen(Number(app_port), app_host, async () => {
     try {
-        db.connect();
+        await db.connect();
     } catch (error) {
         console.error(error);
         process.exit();
