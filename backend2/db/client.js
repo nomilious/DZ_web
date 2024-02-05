@@ -1,32 +1,32 @@
 import pg from "pg";
 
 export default class DB {
-    #dbClient = null;
-    #dbHost = "";
-    #dbPort = "";
-    #dbName = "";
-    #dbLogin = "";
-    #dbPassword = "";
+    dbClient = null;
+    dbHost = "";
+    dbPort = "";
+    dbName = "";
+    dbLogin = "";
+    dbPassword = "";
 
     constructor() {
-        this.#dbHost = process.env.DB_HOST;
-        this.#dbPort = process.env.DB_PORT;
-        this.#dbName = process.env.DB_NAME;
-        this.#dbLogin = process.env.DB_LOGIN;
-        this.#dbPassword = process.env.DB_PASSWORD;
+        this.dbHost = process.env.DB_HOST;
+        this.dbPort = process.env.DB_PORT;
+        this.dbName = process.env.DB_NAME;
+        this.dbLogin = process.env.DB_LOGIN;
+        this.dbPassword = process.env.DB_PASSWORD;
 
-        this.#dbClient = new pg.Client({
-            user: this.#dbLogin,
-            database: this.#dbName,
-            password: this.#dbPassword,
-            host: this.#dbHost,
-            port: this.#dbPort,
+        this.dbClient = new pg.Client({
+            user: this.dbLogin,
+            database: this.dbName,
+            password: this.dbPassword,
+            host: this.dbHost,
+            port: this.dbPort,
         });
     }
     // '*task*' === '*request*'
     async connect() {
         try {
-            await this.#dbClient.connect();
+            await this.dbClient.connect();
             console.log("DB connected");
         } catch (error) {
             console.error(error);
@@ -34,12 +34,12 @@ export default class DB {
         }
     }
     async disconnect() {
-        await this.#dbClient.end();
+        await this.dbClient.end();
         console.log("DB Disconnected");
     }
     async getWorkers() {
         try {
-            const res = await this.#dbClient.query(
+            const res = await this.dbClient.query(
                 "SELECT * FROM WORKER ORDER BY FIO;"
             );
             return res.rows;
@@ -50,7 +50,7 @@ export default class DB {
     }
     async getEquipment() {
         try{
-            const res = await this.#dbClient.query(
+            const res = await this.dbClient.query(
               "SELECT * FROM Equipment;"
             );
             return res.rows;
@@ -62,7 +62,7 @@ export default class DB {
     }
     async getRequests() {
         try {
-            const res = await this.#dbClient.query(
+            const res = await this.dbClient.query(
                 "SELECT * FROM REQUESTS ORDER BY DATE_START;"
             );
             return res.rows;
@@ -82,7 +82,7 @@ export default class DB {
                 ),
             };
         try {
-            await this.#dbClient.query(
+            await this.dbClient.query(
                 "INSERT INTO WORKER (id, FIO) VALUES ($1, $2);",
                 [id, fio]
             );
@@ -102,17 +102,17 @@ export default class DB {
                 ),
             };
         try {
-            const tasks = await this.#dbClient.oneOrNone(
+            const tasks = await this.dbClient.oneOrNone(
                 "SELECT TASKS FROM WORKER WHERE id = $1",
                 [id]
             );
-            await this.#dbClient.query("DELETE FROM WORKERS WHERE ID = $1;", [
+            await this.dbClient.query("DELETE FROM WORKERS WHERE ID = $1;", [
                 id,
             ]);
             // Update each requests' worker_id to null
             if (tasks && tasks.TASKS)
                 for (const task of tasks.TASKS)
-                    await this.#dbClient.query(
+                    await this.dbClient.query(
                         "UPDATE REQUESTS SET WORKER_ID = null WHERE ID = $1",
                         [task.ID]
                     );
@@ -133,7 +133,7 @@ export default class DB {
             };
         }
         try {
-            await this.#dbClient.query(
+            await this.dbClient.query(
                 "UPDATE WORKERS SET FIO = $1 WHERE ID = $2;",
                 [fio, id]
             );
@@ -147,11 +147,11 @@ export default class DB {
             if (await this.checkDateOverlap(taskId, workerId))
                 throw new Error("Date overlap detected. Cannot assignTask.");
 
-            await this.#dbClient.query(
+            await this.dbClient.query(
                 "UPDATE WORKER SET TASKS = ARRAY_APPEND(TASKS, $1) WHERE ID = $2;",
                 [taskId, workerId]
             );
-            await this.#dbClient.query(
+            await this.dbClient.query(
                 "UPDATE REQUESTS SET WORKER_ID= $2 WHERE ID =$1;",
                 [taskId, workerId]
             );
@@ -175,11 +175,11 @@ export default class DB {
             };
         }
         try {
-            await this.#dbClient.query(
+            await this.dbClient.query(
                 "UPDATE WORKER SET TASKS = ARRAY_REMOVE(TASKS, $1) WHERE ID = $2;",
                 [taskId, id]
             );
-            await this.#dbClient.query(
+            await this.dbClient.query(
                 "UPDATE REQUESTS SET WORKER_ID=NULL WHERE ID =$1;",
                 [taskId]
             );
@@ -212,7 +212,7 @@ export default class DB {
             if (!await this.checkEquipmentAvailability(equipmentId))
                 throw new Error("Lack of equipment for requests detected. Cannot createTask.");
 
-            await this.#dbClient.query(
+            await this.dbClient.query(
                 "INSERT INTO REQUESTS(ID, DATE_START, DATE_END, EQUIPMENT_ID) VALUES ($1,$2,$3,$4);",
                 [id, dateStart, dateEnd, equipmentId]
             );
@@ -281,7 +281,7 @@ export default class DB {
             )
                 throw new Error("Date overlap detected. Cannot updateTask.");
 
-            await this.#dbClient.query(query, params);
+            await this.dbClient.query(query, params);
         } catch (error) {
             console.log("Unable to updateTask().");
             return Promise.reject(error);
@@ -296,12 +296,12 @@ export default class DB {
         try {
             // check if worker isn't occupied in the period [newDateStart,newDateEnd]
             const workerId = !rawWorkerId
-                ? await this.#dbClient.query(
+                ? await this.dbClient.query(
                       "SELECT ID FROM WORKER WHERE $1 = ANY(TASKS)",
                       [id]
                   )
                 : rawWorkerId;
-            const result = await this.#dbClient.query(
+            const result = await this.dbClient.query(
                 "SELECT COUNT(*) FROM REQUESTS WHERE WORKER_ID = $1 AND (($2 >= DATE_START AND $2 <= DATE_END) OR ($3 >= DATE_START AND $3 <= DATE_END))",
                 [workerId.id, newDateStart, newDateEnd]
             );
@@ -316,7 +316,7 @@ export default class DB {
     }
     async checkEquipmentAvailability(id) {
         try {
-            const result = await this.#dbClient.query(
+            const result = await this.dbClient.query(
                 `SELECT AVAILABLE
                 FROM EQUIPMENT
                 WHERE ID = $1`,
