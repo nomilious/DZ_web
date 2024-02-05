@@ -4,6 +4,7 @@ import Equipment from './Equipment.js'
 
 export default class App {
   #workers = []
+  #equipment = []
 
   onEscapeKeydown = event => {
     if (event.key === 'Escape') {
@@ -141,6 +142,7 @@ export default class App {
   fillModalForm = async() => {
     try {
       const equipmentData = await AppModel.getEquipment();
+      this.#equipment = equipmentData;
       const equipmentSelect = document.getElementById('equipmentId');
       equipmentSelect.innerHTML = ""; // Clear existing options
 
@@ -225,6 +227,7 @@ export default class App {
         const workerObject = new Worker({
           id: worker.id,
           name: worker.name,
+          equipment: this.#equipment,
           onDropRequestIn: this.onDropRequestIn,
           onEditRequest: this.onEditRequest,
           onDeleteRequest: this.onDeleteRequest,
