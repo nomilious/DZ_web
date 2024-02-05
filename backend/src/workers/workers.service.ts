@@ -54,7 +54,6 @@ export class WorkersService {
     1. get Worker By Id
     2. via loop delete all he's requests
     3. delete worker
-    4. something
     */
     return `This action removes a #${id} worker`;
   }
