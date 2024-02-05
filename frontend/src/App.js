@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import AppModel from './model/AppModel'
 import Worker from './components/Worker'
-// import './App.css';
 
 function App() {
   const [workers, setWorkers] = useState([])
@@ -37,7 +36,7 @@ function App() {
     try {
       if (srcWorkerId !== destWorkerId) {
         // const res =
-          await AppModel.moveTasks({
+        await AppModel.moveTasks({
           id: movedRequestId,
           srcTasklistId: srcWorkerId,
           destTasklistId: destWorkerId,
@@ -98,27 +97,27 @@ function App() {
       console.log(error)
     }
   }
+
   const fillModalForm = async () => {
     try {
-      const equipmentData = await AppModel.getEquipment();
+      const equipmentData = await AppModel.getEquipment()
 
-      setEquipment(equipmentData);
+      setEquipment(equipmentData)
 
-      const equipmentSelect = document.getElementById('equipmentId');
+      const equipmentSelect = document.getElementById('equipmentId')
 
-      equipmentData.forEach((equipment) => {
-        const option = document.createElement('option');
-        option.value = equipment.id;
-        option.text = equipment.title;
-        equipmentSelect.appendChild(option);
-      });
-
+      equipmentData.forEach(equipment => {
+        const option = document.createElement('option')
+        option.value = equipment.id
+        option.text = equipment.title
+        equipmentSelect.appendChild(option)
+      })
     } catch (e) {
-      console.error('Error fillModalForm, ', e);
+      console.error('Error fillModalForm, ', e)
     }
   }
 
-  const dragOver = (evt) => {
+  const dragOver = evt => {
     evt.preventDefault()
 
     const draggedElement = document.querySelector('.task.task_selected')
@@ -166,7 +165,7 @@ function App() {
     if (event.key !== 'Enter') return
 
     if (event.target.value) {
-      console.log("Enter")
+      console.log('Enter')
       console.log(workers)
 
       const workerId = crypto.randomUUID()
@@ -183,30 +182,28 @@ function App() {
         console.log(workers)
         console.log('created local')
 
-        setWorkers(workers => [...workers, {...newWorker}])
+        setWorkers(workers => [...workers, { ...newWorker }])
         // newWorker.render()
         console.log(res)
       } catch (error) {
         console.error(error)
       }
     }
-    event.target.style.display = "none";
-    event.target.value = "";
+    event.target.style.display = 'none'
+    event.target.value = ''
 
-    document.querySelector(".worker-adder__btn").style.display =
-      "inherit";
+    document.querySelector('.worker-adder__btn').style.display = 'inherit'
   }
 
-  useEffect( () => {
+  useEffect(() => {
     const fillModal = async () => {
       try {
         await fillModalForm()
-      }
-      catch (e) {
+      } catch (e) {
         console.error(e)
       }
     }
-    fillModal();
+    fillModal()
 
     document.querySelector('.worker-adder__btn').addEventListener('click', event => {
       event.target.style.display = 'none'
@@ -225,10 +222,8 @@ function App() {
 
     document.addEventListener('dragover', dragOver)
 
-
-
     // get's data from backend
-    const fetchData = async() => {
+    const fetchData = async () => {
       try {
         const rawWorkers = await AppModel.getWorkers()
 
@@ -240,67 +235,65 @@ function App() {
     fetchData()
   }, [])
 
-
   return (
     <>
-      <header className="app-header" id="app-header">
-        <h1 className="app-header__app-name">Custom task header</h1>
-        <div className="app-header__user-and-controls">
-          <div className="user-info">
-            <div className="user-info__avatar"></div>
-            <span className="user-info__username"> Keanu Reeves </span>
+      <header className='app-header' id='app-header'>
+        <h1 className='app-header__app-name'>Custom task header</h1>
+        <div className='app-header__user-and-controls'>
+          <div className='user-info'>
+            <div className='user-info__avatar'></div>
+            <span className='user-info__username'> Keanu Reeves </span>
           </div>
-          <label className="toggle-switch" id="theme-switch">
-            <input type="checkbox" className="toggle-switch__checkbox" />
-            <div className="toggle-switch__slider"></div>
+          <label className='toggle-switch' id='theme-switch'>
+            <input type='checkbox' className='toggle-switch__checkbox' />
+            <div className='toggle-switch__slider'></div>
           </label>
         </div>
       </header>
-      <main className="app-main" id="app-main">
-        <ul className="workers-list">
-          { workers.map( worker => (
-              <Worker
-                key={worker.id}
-                id={worker.id}
-                name={worker.name}
-                requests={worker.requests}
-                equipment={equipment}
-                onDropRequestIn={onDropRequestIn}
-                onEditRequest={onEditRequest}
-                onDeleteRequest={onDeleteRequest}
-              />
-            )
-          )}
-          <li className="workers-list__item worker-adder">
-            <button type="button" className="worker-adder__btn">
+      <main className='app-main' id='app-main'>
+        <ul className='workers-list'>
+          {workers.map(worker => (
+            <Worker
+              key={worker.id}
+              id={worker.id}
+              name={worker.name}
+              requests={worker.requests}
+              equipment={equipment}
+              onDropRequestIn={onDropRequestIn}
+              onEditRequest={onEditRequest}
+              onDeleteRequest={onDeleteRequest}
+            />
+          ))}
+          <li className='workers-list__item worker-adder'>
+            <button type='button' className='worker-adder__btn'>
               &#10010; Добавить работника
             </button>
-            <input type="text" placeholder="Новый список" className="worker-adder__input" />
+            <input type='text' placeholder='Новый список' className='worker-adder__input' />
           </li>
         </ul>
 
-        <dialog className="app-modal" id="myModal">
+        <dialog className='app-modal' id='myModal'>
           <h3>Введите запрос</h3>
-          <form method="dialog">
-            <div className="form-group">
-              <label htmlFor="startDate">Start Date:</label>
-              <input type="date" className="form-control" id="startDate" required />
+          <form method='dialog'>
+            <div className='form-group'>
+              <label htmlFor='startDate'>Start Date:</label>
+              <input type='date' className='form-control' id='startDate' required />
             </div>
-            <div className="form-group">
-              <label htmlFor="endDate">End Date:</label>
-              <input type="date" className="form-control" id="endDate" required />
+            <div className='form-group'>
+              <label htmlFor='endDate'>End Date:</label>
+              <input type='date' className='form-control' id='endDate' required />
             </div>
-            <div className="form-group">
-              <label htmlFor="equipmentId">Select Equipment:</label>
-              <select className="form-control" id="equipmentId"></select>
+            <div className='form-group'>
+              <label htmlFor='equipmentId'>Select Equipment:</label>
+              <select className='form-control' id='equipmentId'></select>
             </div>
             <button type='submit'>Создать</button>
           </form>
         </dialog>
       </main>
     </>
-  );
+  )
 }
 
-export default App;
+export default App
 // TODO move the Equipment off the components/

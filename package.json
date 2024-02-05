@@ -9,7 +9,7 @@
     "dev-front": "vite ./frontend",
     "build-front": "vite build ./frontend",
     "dev-back": "npm run build-front && node ./backend",
-    "build": "cd frontend && npm run build && cd .. && node ./backend"
+    "build": "cd frontend && npm run build && cd ../backend && nest start"
   },
   "author": "Eduard Belic",
   "license": "ISC",
