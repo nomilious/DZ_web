@@ -17,8 +17,12 @@ export class WorkersController {
   constructor(private readonly workersService: WorkersService) {}
 
   @Post()
-  create(@Body() createWorkerDto: CreateWorkerDto) {
-    return this.workersService.create(createWorkerDto);
+  async create(@Body() { id, fio }: { id: string; fio: string }) {
+    try {
+      return await this.workersService.create({ id, fio });
+    } catch (error) {
+      return error.response;
+    }
   }
 
   @Get()
@@ -26,23 +30,34 @@ export class WorkersController {
     try {
       return await this.workersService.findAll();
     } catch (error) {
-      console.error('Error retrieving workers:', error);
-      throw new InternalServerErrorException('Error retrieving workers');
+      return error.response;
     }
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.workersService.findOne(+id);
+  async findOne(@Param('id') id: string) {
+    try {
+      return await this.workersService.findOne(id);
+    } catch (error) {
+      return error.response;
+    }
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateWorkerDto: UpdateWorkerDto) {
-    return this.workersService.update(+id, updateWorkerDto);
+  async update(@Param('id') id: string, @Body('fio') fio: string) {
+    try {
+      return await this.workersService.update(id, fio);
+    } catch (error) {
+      return error.response;
+    }
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.workersService.remove(+id);
+  async remove(@Param('id') id: string) {
+    try {
+      return await this.workersService.remove(id);
+    } catch (error) {
+      return error.response;
+    }
   }
 }

@@ -58,6 +58,18 @@ export class DatabaseService {
       return Promise.reject(error);
     }
   }
+  async getWorkerById({ id }: { id: string }) {
+    try {
+      const res = await this.dbClient.query(
+        'SELECT * FROM WORKER WHERE id = $1',
+        [id],
+      );
+      return res.rows;
+    } catch (error) {
+      console.log('Unable to getRequests().');
+      return Promise.reject(error);
+    }
+  }
   async createWorker({ id, fio }: { id: string; fio: string }): Promise<void> {
     try {
       if (!fio || !id) {
@@ -78,6 +90,30 @@ export class DatabaseService {
       throw error;
     }
   }
+
+  async deleteRequest({ id }: { id: string }): Promise<void> {
+    try {
+      if (!id) {
+        throw {
+          type: 'client',
+          error: new Error(`deleteRequest() wrong params (id: ${id})`),
+        };
+      }
+      const requests = await this.dbClient.query(
+        'SELECT * FROM REQUESTS WHERE id = $1',
+        [id],
+      );
+
+      if (!requests || !requests.rows) {
+        throw new Error(`Request with ID ${id} not found`);
+      }
+
+      await this.dbClient.query('DELETE FROM REQUESTS WHERE ID = $1;', [id]);
+    } catch (error) {
+      console.log('Unable to deleteWorker().', error);
+      throw error;
+    }
+  }
   async deleteWorker({ id }: { id: string }): Promise<void> {
     try {
       if (!id) {
@@ -88,7 +124,7 @@ export class DatabaseService {
       }
 
       const tasks = await this.dbClient.query(
-        'SELECT TASKS FROM WORKER WHERE id = $1',
+        'SELECT * FROM WORKER WHERE id = $1',
         [id],
       );
 
@@ -97,14 +133,6 @@ export class DatabaseService {
       }
 
       await this.dbClient.query('DELETE FROM WORKER WHERE ID = $1;', [id]);
-
-      // Update each request's worker_id to null
-      for (const task of tasks.rows[0].TASKS) {
-        await this.dbClient.query(
-          'UPDATE REQUESTS SET WORKER_ID = null WHERE ID = $1',
-          [task.ID],
-        );
-      }
     } catch (error) {
       console.log('Unable to deleteWorker().', error);
       throw error;
@@ -121,7 +149,7 @@ export class DatabaseService {
         };
       }
 
-      const query = 'UPDATE WORKERS SET FIO = $1 WHERE ID = $2;';
+      const query = 'UPDATE WORKER SET FIO = $1 WHERE ID = $2;';
       const values = [fio, id];
 
       await this.dbClient.query(query, values);

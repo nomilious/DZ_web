@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Body, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CreateWorkerDto } from './dto/create-worker.dto';
 import { UpdateWorkerDto } from './dto/update-worker.dto';
 import { DatabaseService } from '../database/database.service';
@@ -7,8 +7,13 @@ import { DatabaseService } from '../database/database.service';
 export class WorkersService {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  create(createWorkerDto: CreateWorkerDto) {
-    return 'This action adds a new worker';
+  async create({ id, fio }: { id: string; fio: string }) {
+    try {
+      return this.databaseService.createWorker({ id, fio });
+    } catch (error) {
+      console.error('Error creating worker:', error);
+      throw new InternalServerErrorException(`Error creating worker, ${error}`);
+    }
   }
 
   async findAll() {
@@ -36,25 +41,44 @@ export class WorkersService {
       }));
     } catch (error) {
       console.error('Error retrieving workers:', error);
-      throw new InternalServerErrorException('Error retrieving workers');
+      throw new InternalServerErrorException(
+        `Error retrieving workers, ${error}`,
+      );
     }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} worker`;
+  async findOne(id: string) {
+    try {
+      return await this.databaseService.getWorkerById({ id });
+    } catch (error) {
+      console.error('Error getting One worker:', error);
+      throw new InternalServerErrorException(
+        `Error getting One worker, ${error}`,
+      );
+    }
   }
 
-  update(id: number, updateWorkerDto: UpdateWorkerDto) {
-    return `This action updates a #${id} worker`;
+  async update(id: string, fio: string) {
+    try {
+      await this.databaseService.updateWorker({ id, fio });
+    } catch (error) {
+      console.error('Error updating worker:', error);
+      throw new InternalServerErrorException(`Error updating worker, ${error}`);
+    }
   }
 
-  remove(id: number) {
-    /*
-    TODO
-    1. get Worker By Id
-    2. via loop delete all he's requests
-    3. delete worker
-    */
-    return `This action removes a #${id} worker`;
+  async remove(id: string) {
+    try {
+      const worker = await this.databaseService.getWorkerById({ id });
+
+      // delete worker's requests
+      for (const reqId of worker[0].tasks) {
+        await this.databaseService.deleteRequest({ id: reqId });
+      }
+      await this.databaseService.deleteWorker({ id });
+    } catch (error) {
+      console.error('Error removing worker:', error);
+      throw new InternalServerErrorException(`Error removing worker, ${error}`);
+    }
   }
 }
