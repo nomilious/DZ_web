@@ -6,20 +6,17 @@ import {
   Patch,
   Param,
   Delete,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { WorkersService } from './workers.service';
-import { CreateWorkerDto } from './dto/create-worker.dto';
-import { UpdateWorkerDto } from './dto/update-worker.dto';
 
 @Controller('workers')
 export class WorkersController {
   constructor(private readonly workersService: WorkersService) {}
 
   @Post()
-  async create(@Body() { id, fio }: { id: string; fio: string }) {
+  async create(@Body() body: { id: string; fio: string }) {
     try {
-      return await this.workersService.create({ id, fio });
+      return await this.workersService.create(body);
     } catch (error) {
       return error.response;
     }
@@ -34,6 +31,14 @@ export class WorkersController {
     }
   }
 
+  @Get('all')
+  async findAll2() {
+    try {
+      return await this.workersService.findAll2();
+    } catch (error) {
+      return error.response;
+    }
+  }
   @Get(':id')
   async findOne(@Param('id') id: string) {
     try {

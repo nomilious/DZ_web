@@ -8,8 +8,7 @@
   "scripts": {
     "dev-front": "vite ./frontend",
     "build-front": "vite build ./frontend",
-    "dev-back": "npm run build-front && node ./backend",
-    "build": "cd frontend && npm run build && cd ../backend && nest start"
+    "dev": "cd frontend && npm run build && cd ../backend && npm start"
   },
   "author": "Eduard Belic",
   "license": "ISC",

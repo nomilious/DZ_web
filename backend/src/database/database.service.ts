@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Client } from 'pg';
+import { Simulate } from 'react-dom/test-utils';
+import error = Simulate.error;
 
 @Injectable()
 export class DatabaseService {
@@ -20,7 +22,7 @@ export class DatabaseService {
       console.log('DB connected');
     } catch (error) {
       console.error(error);
-      throw error;
+      return Promise.reject(error);
     }
   }
   async disconnect() {
@@ -54,7 +56,19 @@ export class DatabaseService {
       );
       return res.rows;
     } catch (error) {
-      console.log('Unable to getRequests().');
+      console.error(`Unable to getRequests(), ${error}`);
+      return Promise.reject(error);
+    }
+  }
+  async getRequestById({ id }: { id: string }) {
+    try {
+      const res = await this.dbClient.query(
+        'SELECT * FROM REQUESTS WHERE id = $1',
+        [id],
+      );
+      return res.rows;
+    } catch (error) {
+      console.error(`Unable to getRequestById(), ${error}`);
       return Promise.reject(error);
     }
   }
@@ -66,7 +80,7 @@ export class DatabaseService {
       );
       return res.rows;
     } catch (error) {
-      console.log('Unable to getRequests().');
+      console.error(`Unable to getWorkerById(), ${error}`);
       return Promise.reject(error);
     }
   }
@@ -86,8 +100,8 @@ export class DatabaseService {
         [id, fio],
       );
     } catch (error) {
-      console.log('Unable to createWorker().', error);
-      throw error;
+      console.error(`Unable to createWorker(), ${error}`);
+      return Promise.reject(error);
     }
   }
 
@@ -104,14 +118,19 @@ export class DatabaseService {
         [id],
       );
 
-      if (!requests || !requests.rows) {
+      if (!requests || !requests.rows || !requests.rows.length) {
         throw new Error(`Request with ID ${id} not found`);
       }
 
+      const equipmentId = requests.rows[0].equipment_id;
+
       await this.dbClient.query('DELETE FROM REQUESTS WHERE ID = $1;', [id]);
+
+      // increase available count
+      await this.increaseEquipmentAvailable({ equipmentId });
     } catch (error) {
-      console.log('Unable to deleteWorker().', error);
-      throw error;
+      console.error(`Unable to deleteRequest(), ${error}`);
+      return Promise.reject(error);
     }
   }
   async deleteWorker({ id }: { id: string }): Promise<void> {
@@ -134,8 +153,8 @@ export class DatabaseService {
 
       await this.dbClient.query('DELETE FROM WORKER WHERE ID = $1;', [id]);
     } catch (error) {
-      console.log('Unable to deleteWorker().', error);
-      throw error;
+      console.error(`Unable to deleteWorker(), ${error}`);
+      return Promise.reject(error);
     }
   }
   async updateWorker({ id, fio }: { id: string; fio: string }): Promise<void> {
@@ -155,11 +174,17 @@ export class DatabaseService {
       await this.dbClient.query(query, values);
       console.log('Worker updated successfully');
     } catch (error) {
-      console.log('Unable to updateWorker().', error);
-      throw error;
+      console.error(`Unable to updateWorker(), ${error}`);
+      return Promise.reject(error);
     }
   }
-  async assignTask({ workerId, taskId }: { workerId: string; taskId: string }) {
+  async assingRequest({
+    workerId,
+    taskId,
+  }: {
+    workerId: string;
+    taskId: string;
+  }) {
     try {
       if (!workerId || !taskId) {
         throw {
@@ -170,7 +195,7 @@ export class DatabaseService {
         };
       }
       // if (await this.checkDateOverlap(taskId, workerId))
-      //   throw new Error('Date overlap detected. Cannot assignTask.');
+      //   throw new Error('Date overlap detected. Cannot assingRequest.');
 
       await this.dbClient.query(
         'UPDATE WORKER SET TASKS = ARRAY_APPEND(TASKS, $1) WHERE ID = $2;',
@@ -181,17 +206,17 @@ export class DatabaseService {
         [taskId, workerId],
       );
     } catch (error) {
-      console.log('Unable to assignTask().');
+      console.log('Unable to assingRequest().');
       return Promise.reject(error);
     }
   }
-  async unassignTask({ id, taskId }: { id: string; taskId: string }) {
+  async unassingRequest({ id, taskId }: { id: string; taskId: string }) {
     try {
       if (!taskId || !id) {
         throw {
           type: 'client',
           error: new Error(
-            `unassignTask() wrong params (id: ${id}, taskId: ${taskId})`,
+            `unassingRequest() wrong params (id: ${id}, taskId: ${taskId})`,
           ),
         };
       }
@@ -204,11 +229,11 @@ export class DatabaseService {
         [taskId],
       );
     } catch (error) {
-      console.log('Unable to unassignTask().');
+      console.error(`Unable to unassingRequest(), ${error}`);
       return Promise.reject(error);
     }
   }
-  async reassignTask({
+  async reassingRequest({
     taskId,
     src_worker_id,
     dest_worker_id,
@@ -218,158 +243,244 @@ export class DatabaseService {
     dest_worker_id: string;
   }) {
     try {
-      await this.unassignTask({ id: src_worker_id, taskId });
-      await this.assignTask({ workerId: dest_worker_id, taskId });
+      await this.unassingRequest({ id: src_worker_id, taskId });
+      await this.assingRequest({ workerId: dest_worker_id, taskId });
     } catch (error) {
-      console.log('Unable to reassignTask().');
+      console.error(`Unable to reassingRequest(), ${error}`);
       return Promise.reject(error);
     }
   }
-  async createTask({
+  async createRequest({
     id,
-    dateStart,
-    dateEnd,
+    startDate,
+    endDate,
     equipmentId,
     workerId,
   }: {
     id: string;
-    dateStart: Date;
-    dateEnd: Date;
+    startDate: Date;
+    endDate: Date;
     equipmentId: string;
     workerId: string;
   }) {
     try {
-      if (!id || !dateStart || !dateEnd || !equipmentId || !workerId) {
+      if (!this.checkdates({ dateStart: startDate, dateEnd: endDate })) {
+        return Promise.reject('Dates are bad');
+      }
+
+      if (!id || !startDate || !endDate || !equipmentId || !workerId) {
         throw {
           type: 'client',
           error: new Error(
-            `createTask() wrong params (id: ${id}, dateStart: ${dateStart}, dateEnd: ${dateEnd}, equipmentId: ${equipmentId}, workerId: ${workerId})`,
+            `createRequest() wrong params (id: ${id}, dateStart: ${startDate}, dateEnd: ${endDate}, equipmentId: ${equipmentId}, workerId: ${workerId})`,
           ),
         };
       }
-      // if (!(await this.checkEquipmentAvailability(equipmentId)))
-      //   throw new Error(
-      //     'Lack of equipment for requests detected. Cannot createTask.',
-      //   );
+      if (!(await this.checkEquipmentAvailability(equipmentId)))
+        return Promise.reject(
+          'Lack of equipment for requests detected. Cannot createRequest.',
+        );
+
+      if (!(await this.checkDateOverlap(id, equipmentId, startDate, endDate))) {
+        return Promise.reject('Date overlap detected. Cannot createRequest.');
+      }
 
       await this.dbClient.query(
         'INSERT INTO REQUESTS(ID, DATE_START, DATE_END, EQUIPMENT_ID) VALUES ($1,$2,$3,$4);',
-        [id, dateStart, dateEnd, equipmentId],
+        [id, startDate, endDate, equipmentId],
       );
-      // TODO decrement quantity
-      await this.assignTask({ workerId, taskId: id });
-      //TODO if error => revert
+
+      await this.decreaseEquipmentAvailable({ equipmentId });
+
+      await this.assingRequest({ workerId, taskId: id });
     } catch (error) {
-      console.log('Unable to createTask().');
+      console.error(`Unable to createRequest(), ${error}`);
       return Promise.reject(error);
     }
   }
   // it doesnt update workerId
-  async updateTask({
+  async updateRequest({
     id,
-    dateStart,
-    dateEnd,
+    startDate,
+    endDate,
     equipmentId,
   }: {
     id: string;
-    dateStart?: Date;
-    dateEnd?: Date;
+    startDate?: Date;
+    endDate?: Date;
     equipmentId?: string;
   }) {
     // HAVE to check if this worker doesn't have any tests in this period
     try {
-      if (!id || (!dateStart && !dateEnd && !equipmentId)) {
+      if (!id || (!startDate && !endDate && !equipmentId)) {
         throw {
           type: 'client',
           error: new Error(
-            `updateTask() wrong params (id: ${id}, dateStart: ${dateStart}, dateEnd: ${dateEnd}, equipmentId: ${equipmentId})`,
+            `updateRequest() wrong params (id: ${id}, dateStart: ${startDate}, dateEnd: ${endDate}, equipmentId: ${equipmentId})`,
           ),
         };
       }
     } catch (error) {
       return error;
     }
-    const params = [dateStart, dateEnd, equipmentId, id];
+    const params = [startDate, endDate, equipmentId, id].filter(
+      (param) => param !== undefined,
+    );
     let query = 'UPDATE REQUESTS SET';
 
     // Build the SET clause for the SQL query
     const updateFields = {
-      DATE_START: dateStart,
-      DATE_END: dateEnd,
+      DATE_START: startDate,
+      DATE_END: endDate,
       EQUIPMENT_ID: equipmentId,
     };
 
-    let flag = false;
-    let dateChangedFlag = false;
+    let commaFlag = false;
+    let dateChangedFlag = startDate || endDate;
+    let equipmentChangedFlag = equipmentId !== undefined;
 
     // if params[i] is set, then add it to string `query`
     for (let i = 0; i < params.length - 1; i++) {
       if (params[i]) {
-        if (flag) query += ',';
+        if (commaFlag) query += ',';
+
         query += ` ${Object.keys(updateFields)[i]} = $${i + 1}`;
-        flag = true;
+        commaFlag = true;
       }
-      if (Object.keys(updateFields)[i].includes('DATE')) dateChangedFlag = true;
     }
-    query += ` WHERE ID = $4;`;
+    query += ` WHERE ID = $${params.length};`;
+
+    if (!this.checkdates({ dateStart: startDate, dateEnd: endDate })) {
+      return Promise.reject('Dates are bad');
+    }
 
     try {
-      if (
-        dateChangedFlag &&
-        (await this.checkDateOverlap(id, updateFields[3], dateStart, dateEnd))
-      )
-        throw new Error('Date overlap detected. Cannot updateTask.');
+      if (equipmentChangedFlag) {
+        if (!(await this.checkEquipmentAvailability(equipmentId))) {
+          throw new Error(
+            'New equipment have no available instances. Cannot updateRequest.',
+          );
+        }
+      }
+      if (dateChangedFlag) {
+        if (
+          !(await this.checkDateOverlap(id, equipmentId, startDate, endDate))
+        ) {
+          throw new Error('Date overlap detected. Cannot updateRequest.');
+        }
+      }
 
       await this.dbClient.query(query, params);
     } catch (error) {
-      console.log('Unable to updateTask().');
+      console.error(`Unable to updateRequest(), ${error}`);
+      return Promise.reject(error);
+    }
+  }
+  async decreaseEquipmentAvailable({ equipmentId }: { equipmentId: string }) {
+    try {
+      if (!equipmentId) {
+        throw {
+          type: 'client',
+          error: new Error(
+            `decreaseEquipmentAvailable() wrong params (id: ${equipmentId}`,
+          ),
+        };
+      }
+      await this.dbClient.query(
+        'UPDATE EQUIPMENT SET available = available -1 WHERE ID=$1',
+        [equipmentId],
+      );
+    } catch (error) {
+      console.error(`Unable to decreaseEquipmentAvailable(), ${error}`);
+      return Promise.reject(error);
+    }
+  }
+  async increaseEquipmentAvailable({ equipmentId }: { equipmentId: string }) {
+    try {
+      if (!equipmentId) {
+        throw {
+          type: 'client',
+          error: new Error(
+            `decreaseEquipmentAvailable() wrong params (id: ${equipmentId}`,
+          ),
+        };
+      }
+      await this.dbClient.query(
+        'UPDATE EQUIPMENT SET available = available + 1 WHERE ID=$1',
+        [equipmentId],
+      );
+    } catch (error) {
+      console.error(`Unable to decreaseEquipmentAvailable(), ${error}`);
       return Promise.reject(error);
     }
   }
   async checkDateOverlap(
-    id: string,
-    rawWorkerId: string,
-    newDateStart: Date,
-    newDateEnd: Date,
+    reqId: string,
+    equipmentId: string,
+    startDate: Date,
+    endDate: Date,
   ) {
+    // count all requests excepting reqId
+    // where date overlaps(dateStart between dates or endDate between Dates)
+    console.log('In checkDateOverlap()');
+    const query = `
+        SELECT COUNT(*) AS count
+        FROM REQUESTS 
+        WHERE equipment_id !=$1 and id =$2
+        AND (($3 BETWEEN DATE_START AND DATE_END) OR ($4 BETWEEN DATE_START AND DATE_END));`;
+
     try {
-      // check if worker isn't occupied in the period [newDateStart,newDateEnd]
-      const workerId = !rawWorkerId
-        ? await this.dbClient.query(
-            'SELECT ID FROM WORKER WHERE $1 = ANY(TASKS)',
-            [id],
-          )
-        : rawWorkerId;
-      const result = await this.dbClient.query(
-        'SELECT COUNT(*) FROM REQUESTS WHERE WORKER_ID = $1 AND (($2 >= DATE_START AND $2 <= DATE_END) OR ($3 >= DATE_START AND $3 <= DATE_END))',
-        [workerId.id, newDateStart, newDateEnd],
+      const request = await this.dbClient.query(
+        `Select * from REQUESTS where id = $1`,
+        [reqId],
       );
+      // if (!request)
+
+      if (!equipmentId) {
+        equipmentId = request.rows[0].equipment_id;
+      }
+      if (!startDate) {
+        startDate = request.rows[0].date_start;
+      }
+      if (!endDate) {
+        endDate = request.rows[0].date_end;
+      }
+      const result = await this.dbClient.query(query, [
+        reqId,
+        equipmentId,
+        startDate,
+        endDate,
+      ]);
 
       const overlapCount = parseInt(result.rows[0].count);
 
-      return overlapCount !== 0;
+      return overlapCount === 0;
     } catch (error) {
       console.error('Error checking date overlap:', error);
-      throw error;
+      return Promise.reject(error);
     }
   }
-  // async checkEquipmentAvailability(id) {
-  //   try {
-  //     const result = await this.dbClient.query(
-  //       `SELECT AVAILABLE
-  //               FROM EQUIPMENT
-  //               WHERE ID = $1`,
-  //       [id],
-  //     );
-  //
-  //     // Check if the equipment is available for the specified period
-  //     const availableQuantity = result.rows[0]?.available || 0;
-  //
-  //     return availableQuantity >= 1;
-  //   } catch (error) {
-  //     console.log('Error checking equipment availability:', error);
-  //     throw error;
-  //   }
-  // }
-  // TODO: review checkDateOverlap() usage
+
+  checkdates({ dateStart, dateEnd }: { dateStart: Date; dateEnd: Date }) {
+    return dateStart <= dateEnd;
+  }
+
+  async checkEquipmentAvailability(id: string) {
+    try {
+      const result = await this.dbClient.query(
+        `SELECT AVAILABLE
+                FROM EQUIPMENT
+                WHERE ID = $1`,
+        [id],
+      );
+
+      // Check if the equipment is available for the specified period
+      const availableQuantity = result.rows[0]?.available || 0;
+
+      return availableQuantity >= 1;
+    } catch (error) {
+      console.log('Error checking equipment availability:', error);
+      return Promise.reject(error);
+    }
+  }
 }

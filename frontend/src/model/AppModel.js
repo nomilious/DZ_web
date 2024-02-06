@@ -13,10 +13,10 @@ export default class AppModel {
       let responseBody = null
       if (method === 'GET') responseBody = await response.json()
 
-      if (response.status !== 200) return Promise.reject(responseBody)
+      if (response.ok !== true) return Promise.reject(response)
 
       return responseBody
-        ? responseBody.data
+        ? responseBody
         : {
             timestamp: new Date().toISOString(),
             message: message,

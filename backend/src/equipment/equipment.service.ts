@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 
 @Injectable()
@@ -10,7 +10,7 @@ export class EquipmentService {
       return await this.databaseService.getEquipment();
     } catch (error) {
       console.error('Error retrieving equipment:', error);
-      throw new InternalServerErrorException('Error retrieving equipment');
+      return Promise.reject(error);
     }
   }
 }

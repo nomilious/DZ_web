@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { EquipmentService } from './equipment.service';
 
 @Controller('equipment')
@@ -20,7 +11,7 @@ export class EquipmentController {
       return await this.equipmentService.findAll();
     } catch (error) {
       console.error('Error retrieving equipment:', error);
-      throw new InternalServerErrorException('Error retrieving equipment');
+      return Promise.reject(error);
     }
   }
 }

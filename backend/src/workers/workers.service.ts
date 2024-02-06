@@ -1,18 +1,16 @@
-import { Body, Injectable, InternalServerErrorException } from '@nestjs/common';
-import { CreateWorkerDto } from './dto/create-worker.dto';
-import { UpdateWorkerDto } from './dto/update-worker.dto';
+import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 
 @Injectable()
 export class WorkersService {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  async create({ id, fio }: { id: string; fio: string }) {
+  async create(body: { id: string; fio: string }) {
     try {
-      return this.databaseService.createWorker({ id, fio });
+      return await this.databaseService.createWorker({ ...body });
     } catch (error) {
       console.error('Error creating worker:', error);
-      throw new InternalServerErrorException(`Error creating worker, ${error}`);
+      return Promise.reject(error);
     }
   }
 
@@ -25,6 +23,7 @@ export class WorkersService {
       ]);
 
       // TRANSFORM RAW REQUEST
+      // Date is transformed to locale date
       const requests = rawRequests.map((request) => ({
         id: request.id,
         dateStart: request.date_start.toLocaleDateString('ru-Ru'),
@@ -41,9 +40,15 @@ export class WorkersService {
       }));
     } catch (error) {
       console.error('Error retrieving workers:', error);
-      throw new InternalServerErrorException(
-        `Error retrieving workers, ${error}`,
-      );
+      return Promise.reject(error);
+    }
+  }
+  async findAll2() {
+    try {
+      return await this.databaseService.getWorkers();
+    } catch (error) {
+      console.error('Error getting One worker:', error);
+      return Promise.reject(error);
     }
   }
 
@@ -52,9 +57,7 @@ export class WorkersService {
       return await this.databaseService.getWorkerById({ id });
     } catch (error) {
       console.error('Error getting One worker:', error);
-      throw new InternalServerErrorException(
-        `Error getting One worker, ${error}`,
-      );
+      return Promise.reject(error);
     }
   }
 
@@ -63,10 +66,11 @@ export class WorkersService {
       await this.databaseService.updateWorker({ id, fio });
     } catch (error) {
       console.error('Error updating worker:', error);
-      throw new InternalServerErrorException(`Error updating worker, ${error}`);
+      return Promise.reject(error);
     }
   }
 
+  // TODO maybe to return this await
   async remove(id: string) {
     try {
       const worker = await this.databaseService.getWorkerById({ id });
@@ -78,7 +82,7 @@ export class WorkersService {
       await this.databaseService.deleteWorker({ id });
     } catch (error) {
       console.error('Error removing worker:', error);
-      throw new InternalServerErrorException(`Error removing worker, ${error}`);
+      return Promise.reject(error);
     }
   }
 }

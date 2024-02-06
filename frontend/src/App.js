@@ -94,7 +94,7 @@ function App() {
       document.getElementById(reqId).remove()
       console.log(res)
     } catch (error) {
-      console.log(error)
+      console.error(error)
     }
   }
 
@@ -165,9 +165,6 @@ function App() {
     if (event.key !== 'Enter') return
 
     if (event.target.value) {
-      console.log('Enter')
-      console.log(workers)
-
       const workerId = crypto.randomUUID()
       try {
         const res = await AppModel.addWorkers({
@@ -179,14 +176,13 @@ function App() {
           id: workerId,
           name: event.target.value,
         }
-        console.log(workers)
         console.log('created local')
 
         setWorkers(workers => [...workers, { ...newWorker }])
         // newWorker.render()
         console.log(res)
       } catch (error) {
-        console.error(error)
+        console.error(JSON.stringify(error))
       }
     }
     event.target.style.display = 'none'
@@ -229,7 +225,7 @@ function App() {
 
         setWorkers([...rawWorkers])
       } catch (error) {
-        console.log(error)
+        console.error(error)
       }
     }
     fetchData()
@@ -271,6 +267,7 @@ function App() {
             <input type='text' placeholder='Новый список' className='worker-adder__input' />
           </li>
         </ul>
+        <p>{JSON.stringify(workers)}</p>
 
         <dialog className='app-modal' id='myModal'>
           <h3>Введите запрос</h3>

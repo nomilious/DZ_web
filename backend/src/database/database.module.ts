@@ -11,14 +11,14 @@ export class DatabaseModule implements OnModuleInit, OnModuleDestroy {
     try {
       await this.databaseService.connect();
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   }
   async onModuleDestroy() {
     try {
       await this.databaseService.disconnect();
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   }
 }

@@ -1,29 +1,63 @@
 import { Injectable } from '@nestjs/common';
-import { CreateRequestDto } from './dto/create-request.dto';
-import { UpdateRequestDto } from './dto/update-request.dto';
 import { DatabaseService } from '../database/database.service';
 
 @Injectable()
 export class RequestsService {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  create(createRequestDto: CreateRequestDto) {
-    return 'This action adds a new request';
+  async create(body: {
+    id: string;
+    startDate: Date;
+    endDate: Date;
+    equipmentId: string;
+    workerId: string;
+  }) {
+    try {
+      return await this.databaseService.createRequest({
+        ...body,
+      });
+    } catch (error) {
+      console.error('Error creating request:', error);
+      return Promise.reject(error);
+    }
   }
 
   async findAll() {
-    return await this.databaseService.getRequests();
+    try {
+      return await this.databaseService.getRequests();
+    } catch (error) {
+      console.error('Error retrieving requests:', error);
+      return Promise.reject(error);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} request`;
+  async update(
+    id: string,
+    body: {
+      startDate?: Date;
+      endDate?: Date;
+      equipmentId?: string;
+    },
+  ) {
+    try {
+      return await this.databaseService.updateRequest({ id, ...body });
+    } catch (error) {
+      console.error('Error updating request:', error);
+      return Promise.reject(error);
+    }
   }
 
-  update(id: number, updateRequestDto: UpdateRequestDto) {
-    return `This action updates a #${id} request`;
-  }
+  async remove(id: string) {
+    try {
+      const request = await this.databaseService.getRequestById({ id });
+      const workerId = request[0].worker_id;
+      // remove from worker's tasks this request
+      await this.databaseService.unassingRequest({ id: workerId, taskId: id });
 
-  remove(id: number) {
-    return `This action removes a #${id} request`;
+      return await this.databaseService.deleteRequest({ id });
+    } catch (error) {
+      console.error('Error removing requests:', error);
+      return Promise.reject(error);
+    }
   }
 }

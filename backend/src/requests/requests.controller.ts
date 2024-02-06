@@ -6,42 +6,62 @@ import {
   Patch,
   Param,
   Delete,
-  HttpStatus,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { RequestsService } from './requests.service';
-import { CreateRequestDto } from './dto/create-request.dto';
-import { UpdateRequestDto } from './dto/update-request.dto';
 
 @Controller('requests')
 export class RequestsController {
   constructor(private readonly requestsService: RequestsService) {}
 
   @Post()
-  create(@Body() createRequestDto: CreateRequestDto) {
-    return this.requestsService.create(createRequestDto);
+  async create(
+    @Body()
+    body: {
+      id: string;
+      startDate: Date;
+      endDate: Date;
+      equipmentId: string;
+      workerId: string;
+    },
+  ) {
+    try {
+      return await this.requestsService.create(body);
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
 
   @Get()
   async findAll() {
-    return this.requestsService.findAll().catch((error) => {
-      console.error('Error retrieving requests:', error);
-      throw new InternalServerErrorException('Error retrieving requests');
-    });
+    try {
+      return await this.requestsService.findAll();
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.requestsService.findOne(+id);
-  }
-
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRequestDto: UpdateRequestDto) {
-    return this.requestsService.update(+id, updateRequestDto);
+  async update(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      startDate?: Date;
+      endDate?: Date;
+      equipmentId?: string;
+    },
+  ) {
+    try {
+      return await this.requestsService.update(id, body);
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.requestsService.remove(+id);
+  async remove(@Param('id') id: string) {
+    try {
+      return await this.requestsService.remove(id);
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
 }

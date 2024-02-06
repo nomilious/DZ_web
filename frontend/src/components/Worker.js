@@ -1,12 +1,11 @@
 // import Equipment from './Equipment'
-import React, { Component } from 'react';
+import React, { Component } from 'react'
 import AppModel from './../model/AppModel'
 import Request from './Request'
 
-
 class Worker extends Component {
   constructor({ id = null, name, onDropRequestIn, onEditRequest, onDeleteRequest, equipment = [], requests = [] }) {
-    super();
+    super()
     this.state = {
       id: id,
       name: name,
@@ -15,9 +14,8 @@ class Worker extends Component {
       onDropRequestIn: onDropRequestIn,
       onEditRequest: onEditRequest,
       onDeleteRequest: onDeleteRequest,
-    };
+    }
   }
-
 
   getRequestById = ({ reqId }) => this.state.requests.find(req => req.id === reqId)
 
@@ -31,8 +29,9 @@ class Worker extends Component {
     return deletedTask
   }
   reorderRequests = async () => {
-    const orderedTasksIDs = Array.from(document.querySelector(`[id="${this.state.id}"] .worker__tasks-list`).children,
-        elem =>  elem.getAttribute('id')
+    const orderedTasksIDs = Array.from(
+      document.querySelector(`[id="${this.state.id}"] .worker__tasks-list`).children,
+      elem => elem.getAttribute('id')
     )
     let reorderTaskInfo = []
 
@@ -84,7 +83,7 @@ class Worker extends Component {
             equipment: { ...equipmentData },
           })
         } catch (error) {
-          console.error(error)
+          console.error(error.message)
         }
       },
       { once: true }
@@ -101,27 +100,25 @@ class Worker extends Component {
       // onEditTask: this.state.onEditRequest,
       // onDeleteTask: this.state.onDeleteRequest,
     }
-    console.log("HERE")
     this.setState(prevState => ({
       ...prevState,
-      requests: [...prevState.requests, newRequest]
-    }));
+      requests: [...prevState.requests, newRequest],
+    }))
 
     // const newTaskElement = newTask.render()
     // document.querySelector(`[id="${this.state.id}"] .worker__requests-list`).appendChild(newTaskElement)
   }
 
-
   render() {
     return (
       <li
-        className="workers-list__item worker"
+        className='workers-list__item worker'
         id={this.state.id}
         onDragStart={() => localStorage.setItem('srcTasklistID', this.state.id)}
         onDrop={this.state.onDropRequestIn}
       >
-        <h2 className="worker__name">{this.state.name}</h2>
-        <ul className="worker__requests-list">
+        <h2 className='worker__name'>{this.state.name}</h2>
+        <ul className='worker__requests-list'>
           {this.state.requests.map(request => (
             <Request
               id={request.id}
@@ -129,19 +126,14 @@ class Worker extends Component {
               dateEnd={request.dateEnd}
               equipment={request.equipment}
             />
-            ))
-          }
+          ))}
         </ul>
-        <button
-          type="button"
-          className="worker__add-request-btn"
-          onClick={this.onAddNewRequest}
-        >
+        <button type='button' className='worker__add-request-btn' onClick={this.onAddNewRequest}>
           &#10010; Добавить запрос
         </button>
       </li>
-    );
+    )
   }
 }
 
-export default Worker;
+export default Worker
