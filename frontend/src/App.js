@@ -1,37 +1,38 @@
-import { useEffect, useState } from 'react'
-import AppModel from './model/AppModel'
-import Worker from './components/Worker'
+import { useEffect, useState } from 'react';
+import AppModel from './model/AppModel';
+import Worker from './components/Worker';
+import worker from './components/Worker';
 
 function App() {
-  const [workers, setWorkers] = useState([])
-  const [equipment, setEquipment] = useState([])
+  const [workers, setWorkers] = useState([]);
+  const [equipment, setEquipment] = useState([]);
 
   const onEscapeKeydown = event => {
     if (event.key === 'Escape') {
-      const input = document.querySelector('.worker-adder__input')
-      input.style.display = 'none'
-      input.value = ''
+      const input = document.querySelector('.worker-adder__input');
+      input.style.display = 'none';
+      input.value = '';
 
-      document.querySelector('.worker-adder__btn').style.display = 'inherit'
+      document.querySelector('.worker-adder__btn').style.display = 'inherit';
     }
-  }
+  };
   const onDropRequestIn = async evt => {
-    evt.stopPropagation()
+    evt.stopPropagation();
 
-    const destWorkerElement = evt.currentTarget
-    destWorkerElement.classList.remove('worker_droppable')
+    const destWorkerElement = evt.currentTarget;
+    destWorkerElement.classList.remove('worker_droppable');
 
-    const movedRequestId = localStorage.getItem('movedTaskID')
-    const srcWorkerId = localStorage.getItem('srcTasklistID')
-    const destWorkerId = destWorkerElement.getAttribute('id')
+    const movedRequestId = localStorage.getItem('movedTaskID');
+    const srcWorkerId = localStorage.getItem('srcTasklistID');
+    const destWorkerId = destWorkerElement.getAttribute('id');
 
-    localStorage.setItem('movedTaskID', '')
-    localStorage.setItem('srcTasklistID', '')
+    localStorage.setItem('movedTaskID', '');
+    localStorage.setItem('srcTasklistID', '');
 
-    if (!destWorkerElement.querySelector(`[id="${movedRequestId}"]`)) return
+    if (!destWorkerElement.querySelector(`[id="${movedRequestId}"]`)) return;
 
-    const srcWorker = workers.find(worker => worker.id === srcWorkerId)
-    const destWorker = workers.find(worker => worker.id === destWorkerId)
+    const srcWorker = workers.find(worker => worker.id === srcWorkerId);
+    const destWorker = workers.find(worker => worker.id === destWorkerId);
 
     try {
       if (srcWorkerId !== destWorkerId) {
@@ -40,196 +41,223 @@ function App() {
           id: movedRequestId,
           srcTasklistId: srcWorkerId,
           destTasklistId: destWorkerId,
-        })
+        });
         const movedRequest = srcWorker.deleteRequest({
           taskID: movedRequestId,
-        })
-        destWorker.addRequest({ request: movedRequest })
+        });
+        destWorker.addRequest({ request: movedRequest });
 
-        srcWorker.reorderRequests()
+        srcWorker.reorderRequests();
       }
 
-      destWorker.reorderRequests()
+      destWorker.reorderRequests();
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
-  }
+  };
+
+  const showModalAndCallback = callback => {
+    const modal = document.getElementById('myModal');
+    modal.showModal();
+
+    modal.addEventListener('submit', callback, { once: true });
+    modal.querySelector('form').reset();
+  };
   const onEditRequest = async ({ reqId }) => {
-    let fWorker = null
+    let Worker_request = null;
     for (let worker of workers) {
-      fWorker = worker.getRequestById({ reqId })
-      if (fWorker) break
+      Worker_request = worker.getRequestById({ reqId });
+      if (Worker_request) break;
     }
 
-    const curTaskText = fWorker.taskText
-    const newTaskText = prompt('Введите новое описание задачи')
+    const curTaskText = Worker_request.equipment.title;
+    const newTaskText = prompt('Введите новое описание задачи');
 
-    if (!newTaskText || newTaskText === curTaskText) return
+    if (!newTaskText || newTaskText === curTaskText) return;
     try {
-      const res = await AppModel.editTasks({
+      const res = await AppModel.updateRequest({
         id: reqId,
         text: newTaskText,
-      })
+      });
 
-      fWorker.taskText = newTaskText
+      Worker_request.taskText = newTaskText;
 
-      document.querySelector(`[id="${reqId}"] span.task__text`).innerHTML = newTaskText
-      console.log(res)
+      document.querySelector(`[id="${reqId}"] span.task__text`).innerHTML = newTaskText;
+      console.log(res);
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
-  }
+  };
+
+  // TODO run reorderTasks on task adding
+  // TODO add to model inside of App.js
+  const deleteRequest = ({ workerId, reqId }) => {
+    setWorkers(prevWorkers => {
+      return prevWorkers.map((worker, ind) => {
+        if (ind === workerId) {
+          // Copy the worker object
+          const updatedWorker = { ...worker };
+          // Filter out the request to delete
+          updatedWorker.requests = updatedWorker.requests.filter(request => request.id !== reqId);
+          return updatedWorker;
+        }
+        return worker;
+      });
+    });
+  };
   const onDeleteRequest = async ({ reqId }) => {
-    let fRequest = null
-    let fWorker = null
-    for (let worker of workers) {
-      fWorker = worker
-      fRequest = worker.getRequestById({ reqId })
-      if (fRequest) break
+    let fRequest = null;
+    let index = 0;
+
+    for (const worker of workers) {
+      fRequest = worker.requests.find(req => req.id === reqId);
+      if (fRequest) break;
+      index++;
     }
+    console.log('needed ' + reqId);
 
     try {
-      const res = await AppModel.deleteTasks({ id: reqId })
-      fWorker.deleteRequest({ reqId })
-      document.getElementById(reqId).remove()
-      console.log(res)
+      deleteRequest({ workerId: index, reqId });
+      const res = await AppModel.deleteRequest({ id: reqId });
+      console.log(res);
     } catch (error) {
-      console.error(error)
+      console.error(error);
+      return Promise.reject(error);
     }
-  }
+  };
 
   const fillModalForm = async () => {
     try {
-      const equipmentData = await AppModel.getEquipment()
+      const equipmentData = await AppModel.getEquipment();
 
-      setEquipment(equipmentData)
+      setEquipment(equipmentData);
 
-      const equipmentSelect = document.getElementById('equipmentId')
+      const equipmentSelect = document.getElementById('equipmentId');
 
       equipmentData.forEach(equipment => {
-        const option = document.createElement('option')
-        option.value = equipment.id
-        option.text = equipment.title
-        equipmentSelect.appendChild(option)
-      })
+        const option = document.createElement('option');
+        option.value = equipment.id;
+        option.text = equipment.title;
+        equipmentSelect.appendChild(option);
+      });
     } catch (e) {
-      console.error('Error fillModalForm, ', e)
+      console.error('Error fillModalForm, ', e);
     }
-  }
+  };
 
   const dragOver = evt => {
-    evt.preventDefault()
+    evt.preventDefault();
 
-    const draggedElement = document.querySelector('.task.task_selected')
-    const draggedElementPrevList = draggedElement.closest('.worker')
+    const draggedElement = document.querySelector('.task.task_selected');
+    const draggedElementPrevList = draggedElement.closest('.worker');
 
-    const currentElement = evt.target
-    const prevDroppable = document.querySelector('.worker_droppable')
-    let curDroppable = evt.target
+    const currentElement = evt.target;
+    const prevDroppable = document.querySelector('.worker_droppable');
+    let curDroppable = evt.target;
     while (!curDroppable.matches('.worker') && curDroppable !== document.body) {
-      curDroppable = curDroppable.parentElement
+      curDroppable = curDroppable.parentElement;
     }
 
     if (curDroppable !== prevDroppable) {
-      if (prevDroppable) prevDroppable.classList.remove('worker_droppable')
+      if (prevDroppable) prevDroppable.classList.remove('worker_droppable');
 
       if (curDroppable.matches('.worker')) {
-        curDroppable.classList.add('worker_droppable')
+        curDroppable.classList.add('worker_droppable');
       }
     }
 
-    if (!curDroppable.matches('.worker') || draggedElement === currentElement) return
+    if (!curDroppable.matches('.worker') || draggedElement === currentElement) return;
 
     if (curDroppable === draggedElementPrevList) {
-      if (!currentElement.matches('.task')) return
+      if (!currentElement.matches('.task')) return;
 
       const nextElement =
-        currentElement === draggedElement.nextElementSibling ? currentElement.nextElementSibling : currentElement
+        currentElement === draggedElement.nextElementSibling ? currentElement.nextElementSibling : currentElement;
 
-      curDroppable.querySelector('.worker__tasks-list').insertBefore(draggedElement, nextElement)
+      curDroppable.querySelector('.worker__tasks-list').insertBefore(draggedElement, nextElement);
 
-      return
+      return;
     }
 
     if (currentElement.matches('.task')) {
-      curDroppable.querySelector('.worker__tasks-list').insertBefore(draggedElement, currentElement)
+      curDroppable.querySelector('.worker__tasks-list').insertBefore(draggedElement, currentElement);
 
-      return
+      return;
     }
 
     if (!curDroppable.querySelector('.worker__tasks-list').children.length) {
-      curDroppable.querySelector('.worker__tasks-list').appendChild(draggedElement)
+      curDroppable.querySelector('.worker__tasks-list').appendChild(draggedElement);
     }
-  }
+  };
   const onInputKeydown = async event => {
-    if (event.key !== 'Enter') return
+    if (event.key !== 'Enter') return;
 
     if (event.target.value) {
-      const workerId = crypto.randomUUID()
+      const workerId = crypto.randomUUID();
       try {
         const res = await AppModel.addWorkers({
           id: workerId,
           fio: event.target.value,
-        })
-        console.log('added to model')
+        });
+        console.log('added to model');
         const newWorker = {
           id: workerId,
           name: event.target.value,
-        }
-        console.log('created local')
+        };
+        console.log('created local');
 
-        setWorkers(workers => [...workers, { ...newWorker }])
+        setWorkers(workers => [...workers, { ...newWorker }]);
         // newWorker.render()
-        console.log(res)
+        console.log(res);
       } catch (error) {
-        console.error(JSON.stringify(error))
+        console.error(JSON.stringify(error));
       }
     }
-    event.target.style.display = 'none'
-    event.target.value = ''
+    event.target.style.display = 'none';
+    event.target.value = '';
 
-    document.querySelector('.worker-adder__btn').style.display = 'inherit'
-  }
+    document.querySelector('.worker-adder__btn').style.display = 'inherit';
+  };
 
   useEffect(() => {
     const fillModal = async () => {
       try {
-        await fillModalForm()
+        await fillModalForm();
       } catch (e) {
-        console.error(e)
+        console.error(e);
       }
-    }
-    fillModal()
+    };
+    fillModal();
 
     document.querySelector('.worker-adder__btn').addEventListener('click', event => {
-      event.target.style.display = 'none'
+      event.target.style.display = 'none';
 
-      const input = document.querySelector('.worker-adder__input')
-      input.style.display = 'inherit'
-      input.focus()
-    })
-    document.addEventListener('keydown', onEscapeKeydown)
+      const input = document.querySelector('.worker-adder__input');
+      input.style.display = 'inherit';
+      input.focus();
+    });
+    document.addEventListener('keydown', onEscapeKeydown);
 
-    document.querySelector('.worker-adder__input').addEventListener('keydown', onInputKeydown)
+    document.querySelector('.worker-adder__input').addEventListener('keydown', onInputKeydown);
 
     document.getElementById('theme-switch').addEventListener('change', evt => {
-      evt.target.checked ? document.body.classList.add('dark-theme') : document.body.classList.remove('dark-theme')
-    })
+      evt.target.checked ? document.body.classList.add('dark-theme') : document.body.classList.remove('dark-theme');
+    });
 
-    document.addEventListener('dragover', dragOver)
+    document.addEventListener('dragover', dragOver);
 
     // get's data from backend
     const fetchData = async () => {
       try {
-        const rawWorkers = await AppModel.getWorkers()
+        const rawWorkers = await AppModel.getWorkers();
 
-        setWorkers([...rawWorkers])
+        setWorkers([...rawWorkers]);
       } catch (error) {
-        console.error(error)
+        console.error(error);
       }
-    }
-    fetchData()
-  }, [])
+    };
+    fetchData();
+  }, []);
 
   return (
     <>
@@ -249,16 +277,19 @@ function App() {
       <main className='app-main' id='app-main'>
         <ul className='workers-list'>
           {workers.map(worker => (
-            <Worker
-              key={worker.id}
-              id={worker.id}
-              name={worker.name}
-              requests={worker.requests}
-              equipment={equipment}
-              onDropRequestIn={onDropRequestIn}
-              onEditRequest={onEditRequest}
-              onDeleteRequest={onDeleteRequest}
-            />
+            <>
+              <Worker
+                key={worker.id}
+                id={worker.id}
+                name={worker.name}
+                requests={worker.requests}
+                equipment={equipment}
+                onDropRequestIn={onDropRequestIn}
+                onEditRequest={onEditRequest}
+                onDeleteRequest={onDeleteRequest}
+                showModalAndCallback={showModalAndCallback}
+              />
+            </>
           ))}
           <li className='workers-list__item worker-adder'>
             <button type='button' className='worker-adder__btn'>
@@ -267,7 +298,6 @@ function App() {
             <input type='text' placeholder='Новый список' className='worker-adder__input' />
           </li>
         </ul>
-        <p>{JSON.stringify(workers)}</p>
 
         <dialog className='app-modal' id='myModal'>
           <h3>Введите запрос</h3>
@@ -289,8 +319,8 @@ function App() {
         </dialog>
       </main>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
 // TODO move the Equipment off the components/

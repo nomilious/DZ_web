@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:4321'
+const API_BASE_URL = 'http://localhost:4321';
 
 export default class AppModel {
   static async fetchData(url, method, bodyData = {}, message = '') {
@@ -9,31 +9,31 @@ export default class AppModel {
         headers: {
           'Content-Type': 'application/json',
         },
-      })
-      let responseBody = null
-      if (method === 'GET') responseBody = await response.json()
+      });
+      let responseBody = null;
+      if (method === 'GET') responseBody = await response.json();
 
-      if (response.ok !== true) return Promise.reject(response)
+      if (response.ok !== true) return Promise.reject(response);
 
       return responseBody
         ? responseBody
         : {
             timestamp: new Date().toISOString(),
             message: message,
-          }
+          };
     } catch (err) {
       return Promise.reject({
         timestamp: new Date().toISOString(),
         statusCode: 0,
         message: err,
-      })
+      });
     }
   }
   static async getWorkers() {
-    return AppModel.fetchData('workers', 'GET')
+    return AppModel.fetchData('workers', 'GET');
   }
   static async getEquipment() {
-    return AppModel.fetchData('equipment', 'GET')
+    return AppModel.fetchData('equipment', 'GET');
   }
   static async addWorkers({ id = null, fio = '' }) {
     return AppModel.fetchData(
@@ -44,7 +44,7 @@ export default class AppModel {
         fio,
       },
       'Success addworkers'
-    )
+    );
   }
   static async addRequest({ id = null, startDate = '', endDate = '', equipmentId = null, workerId = null }) {
     return AppModel.fetchData(
@@ -58,9 +58,9 @@ export default class AppModel {
         workerId,
       },
       'Success addRequest'
-    )
+    );
   }
-  static async editTasks({ id = null, text = '', position = -1 }) {
+  static async updateRequest({ id = null, text = '', position = -1 }) {
     return AppModel.fetchData(
       `tasks/${id}`,
       'PATCH',
@@ -69,13 +69,13 @@ export default class AppModel {
         position,
       },
       'Success editTasks'
-    )
+    );
   }
   static async editMultipleTasks({ reorderedTasks = [] }) {
-    return AppModel.fetchData('tasks', 'PATCH', { reorderedTasks }, 'Success editMultipleTasks')
+    return AppModel.fetchData('tasks', 'PATCH', { reorderedTasks }, 'Success editMultipleTasks');
   }
-  static async deleteTasks({ id = null }) {
-    return AppModel.fetchData(`tasks/${id}`, 'DELETE', {}, 'Success deleteTasks')
+  static async deleteRequest({ id = null }) {
+    return AppModel.fetchData(`requests/${id}`, 'DELETE', {}, 'Success deleteTasks');
   }
   static async moveTasks({ id = null, srcTasklistId = null, destTasklistId = null }) {
     return AppModel.fetchData(
@@ -87,6 +87,6 @@ export default class AppModel {
         destTasklistId,
       },
       'Success moveTasks'
-    )
+    );
   }
 }

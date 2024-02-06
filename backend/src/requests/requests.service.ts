@@ -50,6 +50,8 @@ export class RequestsService {
   async remove(id: string) {
     try {
       const request = await this.databaseService.getRequestById({ id });
+      if (!request || !request.length) return;
+
       const workerId = request[0].worker_id;
       // remove from worker's tasks this request
       await this.databaseService.unassingRequest({ id: workerId, taskId: id });

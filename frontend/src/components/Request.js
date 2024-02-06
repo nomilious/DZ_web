@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, { Component } from 'react';
 
 class Request extends Component {
   constructor({
@@ -6,30 +6,32 @@ class Request extends Component {
     dateStart,
     dateEnd,
     equipment,
+    onDeleteRequest,
     // onMoveTask,
     // onEditTask,
-    // onDeleteTask,
+    // onDeleteRequest,
   }) {
-    super()
+    super();
     this.state = {
       id: id || crypto.randomUUID(),
       dateStart,
       dateEnd,
       equipment,
-    }
+      onDeleteRequest,
+    };
   }
 
-  getId = () => this.state.id
-  getStartDate = () => this.state.dateStart
+  getId = () => this.state.id;
+  getStartDate = () => this.state.dateStart;
 
   handleDragStart = evt => {
-    evt.target.classList.add('request_selected')
-    localStorage.setItem('movedTaskID', this.state.id)
-  }
+    evt.target.classList.add('request_selected');
+    localStorage.setItem('movedTaskID', this.state.id);
+  };
 
   handleDragEnd = evt => {
-    evt.target.classList.remove('request_selected')
-  }
+    evt.target.classList.remove('request_selected');
+  };
 
   render() {
     return (
@@ -51,22 +53,18 @@ class Request extends Component {
             <button
               type='button'
               className='request__contol-btn edit-icon'
-              // onClick={this.handleEditTask}
-            >
-              Edit
-            </button>
+              // onClick={() => this.state.onEditRequest({ reqId: this.state.id })}
+            ></button>
             <button
               type='button'
               className='request__contol-btn delete-icon'
-              // onClick={this.handleDeleteTask}
-            >
-              Delete
-            </button>
+              onClick={() => this.state.onDeleteRequest({ reqId: this.state.id })}
+            ></button>
           </div>
         </div>
       </li>
-    )
+    );
   }
 }
 
-export default Request
+export default Request;

@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { Client } from 'pg';
-import { Simulate } from 'react-dom/test-utils';
-import error = Simulate.error;
 
 @Injectable()
 export class DatabaseService {
@@ -264,7 +262,7 @@ export class DatabaseService {
     workerId: string;
   }) {
     try {
-      if (!this.checkdates({ dateStart: startDate, dateEnd: endDate })) {
+      if (!this.checkDates({ dateStart: startDate, dateEnd: endDate })) {
         return Promise.reject('Dates are bad');
       }
 
@@ -350,7 +348,7 @@ export class DatabaseService {
     }
     query += ` WHERE ID = $${params.length};`;
 
-    if (!this.checkdates({ dateStart: startDate, dateEnd: endDate })) {
+    if (!this.checkDates({ dateStart: startDate, dateEnd: endDate })) {
       return Promise.reject('Dates are bad');
     }
 
@@ -422,12 +420,15 @@ export class DatabaseService {
   ) {
     // count all requests excepting reqId
     // where date overlaps(dateStart between dates or endDate between Dates)
-    console.log('In checkDateOverlap()');
     const query = `
         SELECT COUNT(*) AS count
         FROM REQUESTS 
-        WHERE equipment_id !=$1 and id =$2
-        AND (($3 BETWEEN DATE_START AND DATE_END) OR ($4 BETWEEN DATE_START AND DATE_END));`;
+        WHERE id !=$1 and equipment_id =$2
+        AND (
+            ($3 BETWEEN DATE_START AND DATE_END) OR 
+            ($4 BETWEEN DATE_START AND DATE_END) OR
+            ($3 < DATE_START AND $4 > DATE_END )
+        );`;
 
     try {
       const request = await this.dbClient.query(
@@ -461,7 +462,7 @@ export class DatabaseService {
     }
   }
 
-  checkdates({ dateStart, dateEnd }: { dateStart: Date; dateEnd: Date }) {
+  checkDates({ dateStart, dateEnd }: { dateStart: Date; dateEnd: Date }) {
     return dateStart <= dateEnd;
   }
 
