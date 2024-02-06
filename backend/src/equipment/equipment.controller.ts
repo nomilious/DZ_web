@@ -6,7 +6,6 @@ export class EquipmentController {
   constructor(private readonly equipmentService: EquipmentService) {}
   @Get()
   async findAll() {
-    // TODO maybe: add error types handling in catch
     try {
       return await this.equipmentService.findAll();
     } catch (error) {

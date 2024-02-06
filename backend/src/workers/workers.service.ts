@@ -70,7 +70,6 @@ export class WorkersService {
     }
   }
 
-  // TODO maybe to return this await
   async remove(id: string) {
     try {
       const worker = await this.databaseService.getWorkerById({ id });

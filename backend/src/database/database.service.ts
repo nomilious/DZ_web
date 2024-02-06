@@ -280,7 +280,9 @@ export class DatabaseService {
         );
 
       if (!(await this.checkDateOverlap(id, equipmentId, startDate, endDate))) {
-        return Promise.reject('Date overlap detected. Cannot createRequest.');
+        return Promise.reject(
+          `Date overlap detected. Cannot createRequest. ${startDate}, ${endDate}`,
+        );
       }
 
       await this.dbClient.query(

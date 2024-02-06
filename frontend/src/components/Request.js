@@ -21,9 +21,6 @@ class Request extends Component {
     };
   }
 
-  getId = () => this.state.id;
-  getStartDate = () => this.state.dateStart;
-
   handleDragStart = evt => {
     evt.target.classList.add('request_selected');
     localStorage.setItem('movedTaskID', this.state.id);

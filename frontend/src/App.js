@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import AppModel from './model/AppModel';
 import Worker from './components/Worker';
-import worker from './components/Worker';
+
+// TODO implement edit request, request drag&drop
+// TODO run reorderTasks on task adding
 
 function App() {
   const [workers, setWorkers] = useState([]);
@@ -56,12 +58,46 @@ function App() {
     }
   };
 
-  const showModalAndCallback = callback => {
+  const showModalAndCallback = ({ workerId, addLocal }) => {
     const modal = document.getElementById('myModal');
     modal.showModal();
-
-    modal.addEventListener('submit', callback, { once: true });
+    modal.addEventListener(
+      'submit',
+      async () => {
+        onSubmitAction({ workerId }).then(data => addLocal({ ...data }));
+      },
+      { once: true }
+    );
     modal.querySelector('form').reset();
+  };
+  const onSubmitAction = async ({ workerId }) => {
+    const dateStart = document.getElementById('startDate').value;
+    const dateEnd = document.getElementById('endDate').value;
+    const equipmentId = document.getElementById('equipmentId').value;
+
+    try {
+      const id = crypto.randomUUID();
+      // const res =
+      await AppModel.addRequest({
+        id,
+        startDate: dateStart,
+        endDate: dateEnd,
+        equipmentId,
+        workerId,
+      });
+
+      const equipmentData = equipment.filter(equipment => equipment.id === equipmentId)[0];
+
+      return {
+        id,
+        dateStart,
+        dateEnd,
+        equipment: { ...equipmentData },
+      };
+    } catch (error) {
+      console.error(error);
+      return Promise.reject(error);
+    }
   };
   const onEditRequest = async ({ reqId }) => {
     let Worker_request = null;
@@ -89,8 +125,6 @@ function App() {
     }
   };
 
-  // TODO run reorderTasks on task adding
-  // TODO add to model inside of App.js
   const deleteRequest = ({ workerId, reqId }) => {
     setWorkers(prevWorkers => {
       return prevWorkers.map((worker, ind) => {
@@ -277,19 +311,17 @@ function App() {
       <main className='app-main' id='app-main'>
         <ul className='workers-list'>
           {workers.map(worker => (
-            <>
-              <Worker
-                key={worker.id}
-                id={worker.id}
-                name={worker.name}
-                requests={worker.requests}
-                equipment={equipment}
-                onDropRequestIn={onDropRequestIn}
-                onEditRequest={onEditRequest}
-                onDeleteRequest={onDeleteRequest}
-                showModalAndCallback={showModalAndCallback}
-              />
-            </>
+            <Worker
+              key={worker.id}
+              id={worker.id}
+              name={worker.name}
+              requests={worker.requests}
+              equipment={equipment}
+              onDropRequestIn={onDropRequestIn}
+              onEditRequest={onEditRequest}
+              onDeleteRequest={onDeleteRequest}
+              showModalAndCallback={showModalAndCallback}
+            />
           ))}
           <li className='workers-list__item worker-adder'>
             <button type='button' className='worker-adder__btn'>
@@ -323,4 +355,3 @@ function App() {
 }
 
 export default App;
-// TODO move the Equipment off the components/
