@@ -6,6 +6,8 @@ import {
   Patch,
   Param,
   Delete,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { WorkersService } from './workers.service';
 
@@ -18,7 +20,13 @@ export class WorkersController {
     try {
       return await this.workersService.create(body);
     } catch (error) {
-      return error.response;
+      throw new HttpException(
+        {
+          timestamp: new Date().toISOString(),
+          message: `Error creating worker: ${error.message}`,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -27,7 +35,13 @@ export class WorkersController {
     try {
       return await this.workersService.findAll();
     } catch (error) {
-      return error.response;
+      throw new HttpException(
+        {
+          timestamp: new Date().toISOString(),
+          message: `Error findAll worker: ${error.message}`,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -36,7 +50,13 @@ export class WorkersController {
     try {
       return await this.workersService.findAll2();
     } catch (error) {
-      return error.response;
+      throw new HttpException(
+        {
+          timestamp: new Date().toISOString(),
+          message: `Error findAll2 worker: ${error.message}`,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
   @Get(':id')
@@ -44,7 +64,13 @@ export class WorkersController {
     try {
       return await this.workersService.findOne(id);
     } catch (error) {
-      return error.response;
+      throw new HttpException(
+        {
+          timestamp: new Date().toISOString(),
+          message: `Error findOne worker: ${error.message}`,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -53,7 +79,13 @@ export class WorkersController {
     try {
       return await this.workersService.update(id, fio);
     } catch (error) {
-      return error.response;
+      throw new HttpException(
+        {
+          timestamp: new Date().toISOString(),
+          message: `Error updating worker: ${error.message}`,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
   @Patch('move/:id')
@@ -64,7 +96,13 @@ export class WorkersController {
     try {
       return await this.workersService.moveTask(id, body);
     } catch (error) {
-      return error.response;
+      throw new HttpException(
+        {
+          timestamp: new Date().toISOString(),
+          message: `Error moving worker: ${error.message}`,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -73,7 +111,13 @@ export class WorkersController {
     try {
       return await this.workersService.remove(id);
     } catch (error) {
-      return error.response;
+      throw new HttpException(
+        {
+          timestamp: new Date().toISOString(),
+          message: `Error remove worker: ${error.message}`,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

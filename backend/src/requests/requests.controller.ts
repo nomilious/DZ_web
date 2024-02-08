@@ -6,6 +6,8 @@ import {
   Patch,
   Param,
   Delete,
+  HttpStatus,
+  HttpException,
 } from '@nestjs/common';
 import { RequestsService } from './requests.service';
 
@@ -27,7 +29,13 @@ export class RequestsController {
     try {
       return await this.requestsService.create(body);
     } catch (error) {
-      return Promise.reject(error);
+      throw new HttpException(
+        {
+          timestamp: new Date().toISOString(),
+          message: `Error creating requests: ${error.message}`,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -36,7 +44,13 @@ export class RequestsController {
     try {
       return await this.requestsService.findAll();
     } catch (error) {
-      return Promise.reject(error);
+      throw new HttpException(
+        {
+          timestamp: new Date().toISOString(),
+          message: `Error findAll requests: ${error.message}`,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
   @Patch(':id')
@@ -52,7 +66,13 @@ export class RequestsController {
     try {
       return await this.requestsService.update(id, body);
     } catch (error) {
-      return Promise.reject(error);
+      throw new HttpException(
+        {
+          timestamp: new Date().toISOString(),
+          message: `Error updating requests: ${error.message}`,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -61,7 +81,13 @@ export class RequestsController {
     try {
       return await this.requestsService.remove(id);
     } catch (error) {
-      return Promise.reject(error);
+      throw new HttpException(
+        {
+          timestamp: new Date().toISOString(),
+          message: `Error removing requests: ${error.message}`,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

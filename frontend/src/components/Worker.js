@@ -13,6 +13,7 @@ class Worker extends Component {
     showModalAndCallback,
     equipment = [],
     onDragStart,
+    onEditWorker,
     onDragEnd,
     onDeleteWorker,
   }) {
@@ -26,6 +27,7 @@ class Worker extends Component {
       onEditRequest,
       onDeleteRequest,
       showModalAndCallback,
+      onEditWorker,
       onDragStart,
       onDragEnd,
       onDeleteWorker,
@@ -40,15 +42,18 @@ class Worker extends Component {
         onDragStart={() => localStorage.setItem('srcTasklistID', this.state.id)}
         onDrop={this.state.onDrop}
       >
-        <button
-          type='button'
-          className='worker-delete-btn'
-          onClick={() => {
-            this.state.onDeleteWorker({ id: this.state.id });
-          }}
-        >
-          Удалить
-        </button>
+        <div className='request__controls-row'>
+          <button
+            type='button'
+            className='request__contol-btn edit-icon'
+            onClick={() => this.state.onEditWorker({ id: this.state.id })}
+          ></button>
+          <button
+            type='button'
+            className='request__contol-btn delete-icon'
+            onClick={() => this.state.onDeleteWorker({ id: this.state.id })}
+          ></button>
+        </div>
         <h2 className='worker__name'>{this.state.name}</h2>
         <ul className='worker__requests-list'>
           {this.state.requests.map((request, ind) => (

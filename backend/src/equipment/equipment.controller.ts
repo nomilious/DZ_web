@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
 import { EquipmentService } from './equipment.service';
 
 @Controller('equipment')
@@ -9,8 +9,13 @@ export class EquipmentController {
     try {
       return await this.equipmentService.findAll();
     } catch (error) {
-      console.error('Error retrieving equipment:', error);
-      return Promise.reject(error);
+      throw new HttpException(
+        {
+          timestamp: new Date().toISOString(),
+          message: `Error findAll requests: ${error.message}`,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

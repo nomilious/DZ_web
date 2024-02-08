@@ -13,30 +13,27 @@ export default class AppModel {
       let responseBody = null;
       if (method === 'GET') responseBody = await response.json();
 
-      if (response.ok !== true) return Promise.reject(response);
+      if (response.ok !== true) throw new Error(await response.text());
 
       return responseBody
         ? responseBody
         : {
             timestamp: new Date().toISOString(),
-            message: message,
+            message,
           };
     } catch (err) {
-      return Promise.reject({
-        timestamp: new Date().toISOString(),
-        statusCode: 0,
-        message: err,
-      });
+      // if could not fetch or response.ok !== true
+      throw new Error(err);
     }
   }
   static async getWorkers() {
-    return AppModel.fetchData('workers', 'GET');
+    return await AppModel.fetchData('workers', 'GET');
   }
   static async getEquipment() {
-    return AppModel.fetchData('equipment', 'GET');
+    return await AppModel.fetchData('equipment', 'GET');
   }
   static async addWorkers({ id = null, fio = '' }) {
-    return AppModel.fetchData(
+    return await AppModel.fetchData(
       'workers',
       'POST',
       {
@@ -47,46 +44,79 @@ export default class AppModel {
     );
   }
   static async addRequest({ id = null, startDate = '', endDate = '', equipmentId = null, workerId = null }) {
-    return AppModel.fetchData(
-      'requests',
-      'POST',
-      {
-        id,
-        startDate,
-        endDate,
-        equipmentId,
-        workerId,
-      },
-      'Success addRequest'
-    );
+    try {
+      return await AppModel.fetchData(
+        'requests',
+        'POST',
+        {
+          id,
+          startDate,
+          endDate,
+          equipmentId,
+          workerId,
+        },
+        'Success addRequest'
+      );
+    } catch (err) {
+      console.log(err.message);
+      throw new Error('Error addRequest');
+    }
   }
   static async updateRequest({ id, startDate, endDate, equipmentId }) {
-    return AppModel.fetchData(
-      `requests/${id}`,
-      'PATCH',
-      {
-        startDate,
-        endDate,
-        equipmentId,
-      },
-      'Success updateRequest'
-    );
+    try {
+      return await AppModel.fetchData(
+        `requests/${id}`,
+        'PATCH',
+        {
+          startDate,
+          endDate,
+          equipmentId,
+        },
+        'Success updateRequest'
+      );
+    } catch (err) {
+      console.log(err.message);
+      throw new Error('Error updateRequest');
+    }
   }
   static async deleteRequest({ id = null }) {
-    return AppModel.fetchData(`requests/${id}`, 'DELETE', {}, 'Success deleteTasks');
+    try {
+      return await AppModel.fetchData(`requests/${id}`, 'DELETE', {}, 'Success deleteTasks');
+    } catch (err) {
+      console.log(err.message);
+      throw new Error('Error deleteRequest');
+    }
+  }
+  static async updateWorker({ id, fio }) {
+    try {
+      return await AppModel.fetchData(`workers/${id}`, 'PATCH', { fio }, 'Success updateWorker');
+    } catch (err) {
+      console.log(err.message);
+      throw new Error('Error updateWorker');
+    }
   }
   static async deleteWorker({ id = null }) {
-    return AppModel.fetchData(`workers/${id}`, 'DELETE', {}, 'Success deleteWorker');
+    try {
+      return await AppModel.fetchData(`workers/${id}`, 'DELETE', {}, 'Success deleteWorker');
+    } catch (err) {
+      console.log(err.message);
+      throw new Error('Error deleteWorker');
+    }
   }
   static async moveRequest({ id = null, srcWorkerId = null, destWorkerId = null }) {
-    return AppModel.fetchData(
-      `workers/move/${id}`,
-      'PATCH',
-      {
-        srcWorkerId,
-        destWorkerId,
-      },
-      'Success moveTasks'
-    );
+    try {
+      return await AppModel.fetchData(
+        `workers/move/${id}`,
+        'PATCH',
+        {
+          srcWorkerId,
+          destWorkerId,
+        },
+        'Success moveTasks'
+      );
+    } catch (err) {
+      console.log(err.message);
+      throw new Error('Error moveRequest');
+    }
   }
 }

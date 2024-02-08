@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 
 @Injectable()
@@ -10,7 +10,7 @@ export class WorkersService {
       return await this.databaseService.createWorker({ ...body });
     } catch (error) {
       console.error('Error creating worker:', error);
-      return Promise.reject(error);
+      throw new Error(error);
     }
   }
   async moveTask(
@@ -21,7 +21,7 @@ export class WorkersService {
       return await this.databaseService.reassingRequest({ id, ...body });
     } catch (error) {
       console.error('Error creating worker:', error);
-      return Promise.reject(error);
+      throw new Error(error);
     }
   }
 
@@ -51,7 +51,7 @@ export class WorkersService {
       }));
     } catch (error) {
       console.error('Error retrieving workers:', error);
-      return Promise.reject(error);
+      throw new Error(error);
     }
   }
   async findAll2() {
@@ -59,7 +59,7 @@ export class WorkersService {
       return await this.databaseService.getWorkers();
     } catch (error) {
       console.error('Error getting One worker:', error);
-      return Promise.reject(error);
+      throw new Error(error);
     }
   }
 
@@ -68,7 +68,7 @@ export class WorkersService {
       return await this.databaseService.getWorkerById({ id });
     } catch (error) {
       console.error('Error getting One worker:', error);
-      return Promise.reject(error);
+      throw new Error(error);
     }
   }
 
@@ -77,7 +77,7 @@ export class WorkersService {
       await this.databaseService.updateWorker({ id, fio });
     } catch (error) {
       console.error('Error updating worker:', error);
-      return Promise.reject(error);
+      throw new Error(error);
     }
   }
 
@@ -92,7 +92,7 @@ export class WorkersService {
       await this.databaseService.deleteWorker({ id });
     } catch (error) {
       console.error('Error removing worker:', error);
-      return Promise.reject(error);
+      throw new Error(error);
     }
   }
 }

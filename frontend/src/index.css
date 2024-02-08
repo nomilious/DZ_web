@@ -25,6 +25,8 @@
   --shadow-color: #00000029;
   --worker-bg-color: #cbdff4bf;
   --worker-last-bg-color: #cbdff473;
+  --green-50-color: #15c215;
+  --red-50-color: #b01e1e;
 }
 
 .form-control {
@@ -437,6 +439,33 @@ body.dark-theme {
 .worker-delete-btn:hover {
   background-color: #f8d7da;
   color: #721c24;
+}
+.app-notifications {
+  border: none;
+  right: 0;
+  bottom: 3vw;
+  left: 100vw;
+  transform: translateX(calc(-100% - 3vw));
+  background: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notification {
+  box-sizing: border-box;
+  border-radius: 0.5vw;
+  padding: 10px;
+  font-size: clam(0.7rem, 1.5vw, 1.5rem);
+  min-width: 15vw;
+}
+
+.notification-success {
+  background-color: var(--green-50-color);
+}
+
+.notification-error {
+  background-color: var(--red-50-color);
 }
 
 .worker-delete-btn i {

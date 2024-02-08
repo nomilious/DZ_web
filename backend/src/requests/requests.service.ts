@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 
 @Injectable()
@@ -18,7 +18,7 @@ export class RequestsService {
       });
     } catch (error) {
       console.error('Error creating request:', error);
-      return Promise.reject(error);
+      throw new Error(error);
     }
   }
 
@@ -27,7 +27,7 @@ export class RequestsService {
       return await this.databaseService.getRequests();
     } catch (error) {
       console.error('Error retrieving requests:', error);
-      return Promise.reject(error);
+      throw new Error(error);
     }
   }
   // TODO  pass workerId tooo
@@ -43,7 +43,7 @@ export class RequestsService {
       return await this.databaseService.updateRequest({ id, ...body });
     } catch (error) {
       console.error('Error updating request:', error);
-      return Promise.reject(error);
+      throw new Error(error);
     }
   }
 
@@ -59,7 +59,7 @@ export class RequestsService {
       return await this.databaseService.deleteRequest({ id });
     } catch (error) {
       console.error('Error removing requests:', error);
-      return Promise.reject(error);
+      throw new Error(error);
     }
   }
 }

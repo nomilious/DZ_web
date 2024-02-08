@@ -27,8 +27,7 @@ export class DatabaseService {
       await this.dbClient.connect();
       console.log('DB connected');
     } catch (error) {
-      console.error(error);
-      return Promise.reject(error);
+      throw new Error(error);
     }
   }
   async disconnect() {
@@ -43,7 +42,7 @@ export class DatabaseService {
       return res.rows;
     } catch (error) {
       console.log('Unable to getWorkers().');
-      return Promise.reject(error);
+      throw new Error('Unable to getWorkers().' + error);
     }
   }
   async getEquipment() {
@@ -52,7 +51,7 @@ export class DatabaseService {
       return res.rows;
     } catch (error) {
       console.log('Unable to getEquipment().');
-      return Promise.reject(error);
+      throw new Error('Unable to getEquipment().' + error);
     }
   }
   async getRequests() {
@@ -63,7 +62,7 @@ export class DatabaseService {
       return res.rows;
     } catch (error) {
       console.error(`Unable to getRequests(), ${error}`);
-      return Promise.reject(error);
+      throw new Error('Unable to getRequests().' + error);
     }
   }
   async getRequestById({ id }: { id: string }) {
@@ -75,7 +74,7 @@ export class DatabaseService {
       return res.rows;
     } catch (error) {
       console.error(`Unable to getRequestById(), ${error}`);
-      return Promise.reject(error);
+      throw new Error('Unable to getRequestById().' + error);
     }
   }
   async getWorkerById({ id }: { id: string }) {
@@ -87,7 +86,10 @@ export class DatabaseService {
       return res.rows;
     } catch (error) {
       console.error(`Unable to getWorkerById(), ${error}`);
-      return Promise.reject(error);
+      return Promise.reject({
+        type: 'internal',
+        error,
+      });
     }
   }
   async createWorker({ id, fio }: { id: string; fio: string }): Promise<void> {
@@ -107,7 +109,7 @@ export class DatabaseService {
       );
     } catch (error) {
       console.error(`Unable to createWorker(), ${error}`);
-      return Promise.reject(error);
+      throw new Error('Unable to createWorker().' + error);
     }
   }
 
@@ -136,7 +138,7 @@ export class DatabaseService {
       await this.increaseEquipmentAvailable({ equipmentId });
     } catch (error) {
       console.error(`Unable to deleteRequest(), ${error}`);
-      return Promise.reject(error);
+      throw new Error('Unable to deleteRequest().' + error);
     }
   }
   async deleteWorker({ id }: { id: string }): Promise<void> {
@@ -160,7 +162,7 @@ export class DatabaseService {
       await this.dbClient.query('DELETE FROM WORKER WHERE ID = $1;', [id]);
     } catch (error) {
       console.error(`Unable to deleteWorker(), ${error}`);
-      return Promise.reject(error);
+      throw new Error('Unable to deleteWorker().' + error);
     }
   }
   async updateWorker({ id, fio }: { id: string; fio: string }): Promise<void> {
@@ -178,10 +180,9 @@ export class DatabaseService {
       const values = [fio, id];
 
       await this.dbClient.query(query, values);
-      console.log('Worker updated successfully');
     } catch (error) {
       console.error(`Unable to updateWorker(), ${error}`);
-      return Promise.reject(error);
+      throw new Error('Unable to updateWorker().' + error);
     }
   }
   async assingRequest({ id, workerId }: { id: string; workerId: string }) {
@@ -207,7 +208,7 @@ export class DatabaseService {
       );
     } catch (error) {
       console.log('Unable to assingRequest().');
-      return Promise.reject(error);
+      throw new Error('Unable to assingRequest().' + error);
     }
   }
   async unassingRequest({ id, workerId }: { id: string; workerId: string }) {
@@ -230,7 +231,7 @@ export class DatabaseService {
       );
     } catch (error) {
       console.error(`Unable to unassingRequest(), ${error}`);
-      return Promise.reject(error);
+      throw new Error('Unable to unassingRequest().' + error);
     }
   }
   async reassingRequest({
@@ -247,7 +248,7 @@ export class DatabaseService {
       await this.assingRequest({ workerId: destWorkerId, id });
     } catch (error) {
       console.error(`Unable to reassingRequest(), ${error}`);
-      return Promise.reject(error);
+      throw new Error('Unable to reassingRequest().' + error);
     }
   }
   async createRequest({
@@ -295,7 +296,7 @@ export class DatabaseService {
       await this.assingRequest({ workerId, id });
     } catch (error) {
       console.error(`Unable to createRequest(), ${error}`);
-      return Promise.reject(error);
+      throw new Error('Unable to createRequest().' + error);
     }
   }
   // if workerId is passed and not null => run reasignTasks
@@ -321,7 +322,7 @@ export class DatabaseService {
         };
       }
     } catch (error) {
-      return error;
+      throw new Error(error);
     }
     const params = [startDate, endDate, equipmentId, id].filter(
       (param) => param !== undefined,
@@ -374,8 +375,7 @@ export class DatabaseService {
 
       await this.dbClient.query(query, params);
     } catch (error) {
-      console.error(`Unable to updateRequest(), ${error}`);
-      return Promise.reject(error);
+      throw new Error('Unable to updateRequest().' + error);
     }
   }
   async decreaseEquipmentAvailable({ equipmentId }: { equipmentId: string }) {
@@ -393,8 +393,7 @@ export class DatabaseService {
         [equipmentId],
       );
     } catch (error) {
-      console.error(`Unable to decreaseEquipmentAvailable(), ${error}`);
-      return Promise.reject(error);
+      throw new Error('Unable to decreaseEquipmentAvailable().' + error);
     }
   }
   async increaseEquipmentAvailable({ equipmentId }: { equipmentId: string }) {
@@ -412,8 +411,7 @@ export class DatabaseService {
         [equipmentId],
       );
     } catch (error) {
-      console.error(`Unable to decreaseEquipmentAvailable(), ${error}`);
-      return Promise.reject(error);
+      throw new Error('Unable to increaseEquipmentAvailable().' + error);
     }
   }
   async checkDateOverlap(
@@ -461,8 +459,7 @@ export class DatabaseService {
 
       return overlapCount === 0;
     } catch (error) {
-      console.error('Error checking date overlap:', error);
-      return Promise.reject(error);
+      throw new Error('Unable to checkDateOverlap().' + error);
     }
   }
 
@@ -484,8 +481,7 @@ export class DatabaseService {
 
       return availableQuantity >= 1;
     } catch (error) {
-      console.log('Error checking equipment availability:', error);
-      return Promise.reject(error);
+      throw new Error('Unable to checkEquipmentAvailability().' + error);
     }
   }
 }

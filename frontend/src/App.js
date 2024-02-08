@@ -2,10 +2,27 @@ import { useEffect, useState } from 'react';
 import AppModel from './model/AppModel';
 import Worker from './components/Worker';
 
-// TODO fix notificcations
+// TODO Test all actions in one
 function App() {
   const [workers, setWorkers] = useState([]);
   const [equipment, setEquipment] = useState([]);
+
+  const addNotification = ({ name, type }) => {
+    const notifications = document.getElementById('app-notifications');
+
+    const notificationID = crypto.randomUUID();
+    const notification = document.createElement('div');
+    notification.classList.add('notification', type === 'success' ? 'notification-success' : 'notification-error');
+
+    notification.setAttribute('id', notificationID);
+    notification.innerHTML = name;
+
+    notifications.appendChild(notification);
+
+    setTimeout(() => {
+      document.getElementById(notificationID).remove();
+    }, 5000);
+  };
 
   const onEscpKeydown = event => {
     if (event.key === 'Escape') {
@@ -26,19 +43,16 @@ function App() {
           id: workerId,
           fio: event.target.value,
         });
-        console.log('added to model');
         const newWorker = {
           id: workerId,
           name: event.target.value,
           requests: [],
         };
-        console.log('created local');
 
         setWorkers(workers => [...workers, { ...newWorker }]);
-        // newWorker.render()
-        console.log(res);
+        addNotification({ name: res.message, type: 'success' });
       } catch (error) {
-        console.error(JSON.stringify(error));
+        addNotification({ name: error.message, type: 'success' });
       }
     }
     event.target.style.display = 'none';
@@ -50,7 +64,7 @@ function App() {
     const modal = document.getElementById('myModal');
     modal.showModal();
     const onSubmitHandler = async () => {
-      await submitModal({ workerId });
+      await createRequest({ workerId });
     };
 
     const submitListener = () =>
@@ -64,17 +78,15 @@ function App() {
     // remove eventListener if user clicks Esc
     modal.addEventListener('close', () => modal.removeEventListener('submit', submitListener));
   };
-  const submitModal = async ({ workerId }) => {
+  const createRequest = async ({ workerId }) => {
     const dateStart = document.getElementById('startDate').value;
     const dateEnd = document.getElementById('endDate').value;
     const equipmentId = document.getElementById('equipmentId').value;
 
-    console.log(dateStart, dateEnd);
-
     try {
       const id = crypto.randomUUID();
       // const res =
-      await AppModel.addRequest({
+      const res = await AppModel.addRequest({
         id,
         startDate: dateStart,
         endDate: dateEnd,
@@ -84,11 +96,12 @@ function App() {
 
       const equipmentData = equipment.filter(equipment => equipment.id === equipmentId)[0];
 
+      console.log(res);
       addRequest({ workerId, id, dateStart, dateEnd, equipmentData });
       await reorderRequests();
+      addNotification({ name: 'Success Reorder', type: 'success' });
     } catch (error) {
-      console.error(error);
-      return Promise.reject(error);
+      addNotification({ name: error.message, type: 'error' });
     }
   };
   const convertStringToDate = dateString => {
@@ -127,14 +140,14 @@ function App() {
       if (Object.keys(changedValues).length > 0) {
         try {
           console.log(changedValues);
-          await AppModel.updateRequest({ id: reqId, ...changedValues });
+          const res = await AppModel.updateRequest({ id: reqId, ...changedValues });
 
           // change in the model
           updateRequest({ reqId, changedValues });
           await reorderRequests();
+          addNotification({ name: res.message, type: 'success' });
         } catch (error) {
-          console.log(error);
-          return Promise.reject(error);
+          addNotification({ name: error.message, type: 'error' });
         }
       }
     };
@@ -161,10 +174,29 @@ function App() {
     try {
       deleteRequest({ workerId: index, reqId });
       const res = await AppModel.deleteRequest({ id: reqId });
-      console.log(res);
+      addNotification({ name: res.message, type: 'success' });
     } catch (error) {
-      console.error(error);
-      return Promise.reject(error);
+      addNotification({ name: error.message, type: 'error' });
+    }
+  };
+
+  const onEditWorker = async ({ id }) => {
+    const newName = prompt('Введите новое имя');
+    if (newName) {
+      try {
+        const res = await AppModel.updateWorker({ id, fio: newName });
+        setWorkers(prevState => {
+          return prevState.map(worker => {
+            if (worker.id === id) {
+              worker.name = newName;
+            }
+            return worker;
+          });
+        });
+        addNotification({ name: res.message, type: 'success' });
+      } catch (error) {
+        addNotification({ name: error.message, type: 'error' });
+      }
     }
   };
 
@@ -175,10 +207,9 @@ function App() {
     });
     try {
       const res = await AppModel.deleteWorker({ id });
-      console.log(res);
+      addNotification({ name: res.message, type: 'success' });
     } catch (error) {
-      console.error(error);
-      return Promise.reject(error);
+      addNotification({ name: error.message, type: 'error' });
     }
   };
   const fillModalForm = async () => {
@@ -217,8 +248,6 @@ function App() {
     setWorkers(prevState => {
       return prevState.map(worker => {
         if (worker.id === workerId) {
-          console.log('HERE in setWorkers()');
-
           worker.requests.push({
             id,
             dateStart,
@@ -325,7 +354,6 @@ function App() {
     evt.stopPropagation();
 
     const destWorkerElement = evt.currentTarget;
-    console.log('onDrop Event');
     destWorkerElement.classList.remove('worker_droppable');
 
     const movedRequestId = localStorage.getItem('movedTaskID');
@@ -343,10 +371,10 @@ function App() {
     await reorderRequests();
 
     try {
-      await AppModel.moveRequest({ id: movedRequestId, srcWorkerId, destWorkerId });
+      const res = await AppModel.moveRequest({ id: movedRequestId, srcWorkerId, destWorkerId });
+      addNotification({ name: res.message, type: 'success' });
     } catch (error) {
-      console.error(error);
-      return Promise.reject(error);
+      addNotification({ name: error.message, type: 'error' });
     }
   };
 
@@ -360,6 +388,8 @@ function App() {
       }
     };
     fillModal();
+    //init notification
+    document.getElementById('app-notifications').show();
 
     document.querySelector('.worker-adder__btn').addEventListener('click', event => {
       event.target.style.display = 'none';
@@ -385,7 +415,7 @@ function App() {
 
         setWorkers([...rawWorkers]);
       } catch (error) {
-        console.error(error);
+        addNotification({ name: error.message, type: 'error' });
       }
     };
     fetchData();
@@ -411,7 +441,7 @@ function App() {
           {workers.map((worker, ind) => (
             <>
               <Worker
-                key={worker.id + worker.requests.map(request => request.id).join('')}
+                key={worker.id + worker.requests.map(request => request.id).join('') + worker.name}
                 id={worker.id}
                 name={worker.name}
                 requests={worker.requests}
@@ -423,6 +453,7 @@ function App() {
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
                 onDeleteWorker={onDeleteWorker}
+                onEditWorker={onEditWorker}
               />
             </>
           ))}
@@ -434,25 +465,6 @@ function App() {
           </li>
         </ul>
       </main>
-
-      <dialog className='app-modal' id='myModal'>
-        <h3>Введите запрос</h3>
-        <form method='dialog'>
-          <div className='form-group'>
-            <label htmlFor='startDate'>Start Date:</label>
-            <input type='date' className='form-control' id='startDate' required />
-          </div>
-          <div className='form-group'>
-            <label htmlFor='endDate'>End Date:</label>
-            <input type='date' className='form-control' id='endDate' required />
-          </div>
-          <div className='form-group'>
-            <label htmlFor='equipmentId'>Select Equipment:</label>
-            <select className='form-control' id='equipmentId'></select>
-          </div>
-          <button type='submit'>Создать</button>
-        </form>
-      </dialog>
     </>
   );
 }
