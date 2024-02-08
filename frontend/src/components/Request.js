@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { logDOM } from '@testing-library/react';
 
 class Request extends Component {
   constructor({
@@ -7,6 +8,7 @@ class Request extends Component {
     dateEnd,
     equipment,
     onDeleteRequest,
+    onEditRequest,
     // onMoveTask,
     // onEditTask,
     // onDeleteRequest,
@@ -18,6 +20,7 @@ class Request extends Component {
       dateEnd,
       equipment,
       onDeleteRequest,
+      onEditRequest,
     };
   }
 
@@ -33,6 +36,7 @@ class Request extends Component {
   render() {
     return (
       <li
+        key={this.state.title}
         className='worker__requests-list-item request'
         id={this.state.id}
         draggable
@@ -50,13 +54,14 @@ class Request extends Component {
             <button
               type='button'
               className='request__contol-btn edit-icon'
-              // onClick={() => this.state.onEditRequest({ reqId: this.state.id })}
+              onClick={() => this.state.onEditRequest({ reqId: this.state.id })}
             ></button>
             <button
               type='button'
               className='request__contol-btn delete-icon'
               onClick={() => this.state.onDeleteRequest({ reqId: this.state.id })}
             ></button>
+            <p style={{ display: 'none' }}>{JSON.stringify(this.state.equipment)}</p>
           </div>
         </div>
       </li>

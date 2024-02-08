@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import AppModel from './model/AppModel';
 import Worker from './components/Worker';
 
-// TODO implement edit request, request drag&drop
+// TODO implement request drag&drop, fix notificcations
 // TODO run reorderTasks on task adding
-
+// FIXME  test the function overlapDates from databaseModule
 function App() {
   const [workers, setWorkers] = useState([]);
   const [equipment, setEquipment] = useState([]);
 
-  const onEscapeKeydown = event => {
+  const onEscpKeydown = event => {
     if (event.key === 'Escape') {
       const input = document.querySelector('.worker-adder__input');
       input.style.display = 'none';
@@ -57,23 +57,30 @@ function App() {
       console.error(error);
     }
   };
-
-  const showModalAndCallback = ({ workerId, addLocal }) => {
+  const showModalAndCallback = ({ workerId }) => {
     const modal = document.getElementById('myModal');
     modal.showModal();
-    modal.addEventListener(
-      'submit',
-      async () => {
-        onSubmitAction({ workerId }).then(data => addLocal({ ...data }));
-      },
-      { once: true }
-    );
-    modal.querySelector('form').reset();
+    const onSubmitHandler = async () => {
+      await onSubmitAction({ workerId });
+    };
+
+    const submitListener = () =>
+      onSubmitHandler().then(r => {
+        modal.removeEventListener('submit', submitListener);
+        modal.querySelector('form').reset();
+      });
+
+    modal.addEventListener('submit', submitListener);
+
+    // remove eventListener if user clicks Esc
+    modal.addEventListener('close', () => modal.removeEventListener('submit', submitListener));
   };
   const onSubmitAction = async ({ workerId }) => {
     const dateStart = document.getElementById('startDate').value;
     const dateEnd = document.getElementById('endDate').value;
     const equipmentId = document.getElementById('equipmentId').value;
+
+    console.log(dateStart, dateEnd);
 
     try {
       const id = crypto.randomUUID();
@@ -87,56 +94,71 @@ function App() {
       });
 
       const equipmentData = equipment.filter(equipment => equipment.id === equipmentId)[0];
+      console.log('workerId: ' + workerId);
 
-      return {
-        id,
-        dateStart,
-        dateEnd,
-        equipment: { ...equipmentData },
-      };
+      addRequest({ workerId, id, dateStart, dateEnd, equipmentData });
     } catch (error) {
       console.error(error);
       return Promise.reject(error);
     }
   };
+  const convertStringToDate = (dateString, increase = false) => {
+    const parts = dateString.split('-');
+    // Note: months are 0-based in JavaScript Date objects, so we subtract 1 from the month
+    if (increase) {
+      parts[2] = +parts[2] + 1;
+    }
+    const jsDate = new Date(+parts[0], +parts[1] - 1, +parts[2] + 1);
+    return jsDate.toISOString().substring(0, 10);
+  };
   const onEditRequest = async ({ reqId }) => {
     let Worker_request = null;
     for (let worker of workers) {
-      Worker_request = worker.getRequestById({ reqId });
+      Worker_request = worker.requests.find(req => req.id === reqId);
+
       if (Worker_request) break;
     }
 
-    const curTaskText = Worker_request.equipment.title;
-    const newTaskText = prompt('Введите новое описание задачи');
+    const modal = document.getElementById('myModal');
+    modal.showModal();
+    // set dafult values
+    const form = modal.querySelector('form');
+    const [startDateInput, endDateInput, equipmentIdInput] = form.elements;
+    const { dateStart, dateEnd } = Worker_request;
+    const equipmentId = Worker_request.equipment.id;
 
-    if (!newTaskText || newTaskText === curTaskText) return;
-    try {
-      const res = await AppModel.updateRequest({
-        id: reqId,
-        text: newTaskText,
-      });
+    startDateInput.value = convertStringToDate(dateStart);
+    endDateInput.value = convertStringToDate(dateEnd);
+    equipmentIdInput.value = equipmentId;
 
-      Worker_request.taskText = newTaskText;
+    const submitListener = async () => {
+      // Костыль изза ошибки с таймзонами
+      const changedValues = {
+        startDate: startDateInput.value,
+        endDate: endDateInput.value,
+        equipmentId: equipmentIdInput.value,
+      };
 
-      document.querySelector(`[id="${reqId}"] span.task__text`).innerHTML = newTaskText;
-      console.log(res);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+      if (Object.keys(changedValues).length > 0) {
+        try {
+          console.log(changedValues);
+          await AppModel.updateRequest({ id: reqId, ...changedValues });
 
-  const deleteRequest = ({ workerId, reqId }) => {
-    setWorkers(prevWorkers => {
-      return prevWorkers.map((worker, ind) => {
-        if (ind === workerId) {
-          // Copy the worker object
-          const updatedWorker = { ...worker };
-          // Filter out the request to delete
-          updatedWorker.requests = updatedWorker.requests.filter(request => request.id !== reqId);
-          return updatedWorker;
+          // change in the model
+          updateRequest({ reqId, changedValues });
+        } catch (error) {
+          console.log(error);
+          return Promise.reject(error);
         }
-        return worker;
-      });
+      }
+    };
+
+    modal.addEventListener('submit', submitListener);
+
+    // remove eventListener if user clicks Esc
+    modal.addEventListener('close', () => {
+      modal.removeEventListener('submit', submitListener);
+      form.reset();
     });
   };
   const onDeleteRequest = async ({ reqId }) => {
@@ -159,7 +181,6 @@ function App() {
       return Promise.reject(error);
     }
   };
-
   const fillModalForm = async () => {
     try {
       const equipmentData = await AppModel.getEquipment();
@@ -178,7 +199,6 @@ function App() {
       console.error('Error fillModalForm, ', e);
     }
   };
-
   const dragOver = evt => {
     evt.preventDefault();
 
@@ -253,6 +273,55 @@ function App() {
     document.querySelector('.worker-adder__btn').style.display = 'inherit';
   };
 
+  // CRUD actions in model
+  const addRequest = ({ workerId, id, dateStart, dateEnd, equipmentData }) => {
+    setWorkers(prevState => {
+      return prevState.map(worker => {
+        if (worker.id === workerId) {
+          console.log('HERE in setWorkers()');
+
+          worker.requests.push({
+            id,
+            dateStart,
+            dateEnd,
+            equipment: { ...equipmentData },
+          });
+        }
+        return worker;
+      });
+    });
+  };
+  const updateRequest = ({ reqId, changedValues }) => {
+    setWorkers(prevState => {
+      return prevState.map(worker => {
+        const updatedRequests = worker.requests.map(request => {
+          if (request.id === reqId) {
+            request.dateStart = changedValues.startDate;
+            request.dateEnd = changedValues.endDate;
+            request.equipment = equipment.find(equipment => equipment.id === changedValues.equipmentId);
+          }
+          return request;
+        });
+        return { ...worker, requests: updatedRequests };
+      });
+    });
+  };
+  const deleteRequest = ({ workerId, reqId }) => {
+    setWorkers(prevWorkers => {
+      return prevWorkers.map((worker, ind) => {
+        if (ind === workerId) {
+          // Copy the worker object
+          const updatedWorker = { ...worker };
+          // Filter out the request to delete
+          updatedWorker.requests = updatedWorker.requests.filter(request => request.id !== reqId);
+          return updatedWorker;
+        }
+        return worker;
+      });
+    });
+  };
+
+  // actions on component mount
   useEffect(() => {
     const fillModal = async () => {
       try {
@@ -270,7 +339,7 @@ function App() {
       input.style.display = 'inherit';
       input.focus();
     });
-    document.addEventListener('keydown', onEscapeKeydown);
+    document.addEventListener('keydown', onEscpKeydown);
 
     document.querySelector('.worker-adder__input').addEventListener('keydown', onInputKeydown);
 
@@ -296,7 +365,7 @@ function App() {
   return (
     <>
       <header className='app-header' id='app-header'>
-        <h1 className='app-header__app-name'>Custom task header</h1>
+        <h1 className='app-header__app-name'>Тестирование Оборудования</h1>
         <div className='app-header__user-and-controls'>
           <div className='user-info'>
             <div className='user-info__avatar'></div>
@@ -310,9 +379,9 @@ function App() {
       </header>
       <main className='app-main' id='app-main'>
         <ul className='workers-list'>
-          {workers.map(worker => (
+          {workers.map((worker, ind) => (
             <Worker
-              key={worker.id}
+              key={worker.id + worker.requests.map(request => request.id).join('')}
               id={worker.id}
               name={worker.name}
               requests={worker.requests}
@@ -327,29 +396,29 @@ function App() {
             <button type='button' className='worker-adder__btn'>
               &#10010; Добавить работника
             </button>
-            <input type='text' placeholder='Новый список' className='worker-adder__input' />
+            <input type='text' placeholder='Новый работник' className='worker-adder__input' />
           </li>
         </ul>
-
-        <dialog className='app-modal' id='myModal'>
-          <h3>Введите запрос</h3>
-          <form method='dialog'>
-            <div className='form-group'>
-              <label htmlFor='startDate'>Start Date:</label>
-              <input type='date' className='form-control' id='startDate' required />
-            </div>
-            <div className='form-group'>
-              <label htmlFor='endDate'>End Date:</label>
-              <input type='date' className='form-control' id='endDate' required />
-            </div>
-            <div className='form-group'>
-              <label htmlFor='equipmentId'>Select Equipment:</label>
-              <select className='form-control' id='equipmentId'></select>
-            </div>
-            <button type='submit'>Создать</button>
-          </form>
-        </dialog>
       </main>
+
+      <dialog className='app-modal' id='myModal'>
+        <h3>Введите запрос</h3>
+        <form method='dialog'>
+          <div className='form-group'>
+            <label htmlFor='startDate'>Start Date:</label>
+            <input type='date' className='form-control' id='startDate' required />
+          </div>
+          <div className='form-group'>
+            <label htmlFor='endDate'>End Date:</label>
+            <input type='date' className='form-control' id='endDate' required />
+          </div>
+          <div className='form-group'>
+            <label htmlFor='equipmentId'>Select Equipment:</label>
+            <select className='form-control' id='equipmentId'></select>
+          </div>
+          <button type='submit'>Создать</button>
+        </form>
+      </dialog>
     </>
   );
 }

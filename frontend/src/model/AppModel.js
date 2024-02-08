@@ -60,15 +60,16 @@ export default class AppModel {
       'Success addRequest'
     );
   }
-  static async updateRequest({ id = null, text = '', position = -1 }) {
+  static async updateRequest({ id, startDate, endDate, equipmentId }) {
     return AppModel.fetchData(
-      `tasks/${id}`,
+      `requests/${id}`,
       'PATCH',
       {
-        text,
-        position,
+        startDate,
+        endDate,
+        equipmentId,
       },
-      'Success editTasks'
+      'Success updateRequest'
     );
   }
   static async editMultipleTasks({ reorderedTasks = [] }) {

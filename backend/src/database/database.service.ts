@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Client } from 'pg';
-
+const pg = require('pg');
 @Injectable()
 export class DatabaseService {
   private dbClient: Client;
@@ -12,6 +12,14 @@ export class DatabaseService {
       password: process.env.DB_PASSWORD,
       host: process.env.DB_HOST,
       port: process.env.DB_PORT,
+    });
+    // disable Fucking timezones
+    pg.types.setTypeParser(1114, function (stringValue) {
+      return stringValue; //1114 for time without timezone type
+    });
+
+    pg.types.setTypeParser(1082, function (stringValue) {
+      return stringValue; //1082 for date type
     });
   }
   async connect() {
@@ -262,10 +270,6 @@ export class DatabaseService {
     workerId: string;
   }) {
     try {
-      if (!this.checkDates({ dateStart: startDate, dateEnd: endDate })) {
-        return Promise.reject('Dates are bad');
-      }
-
       if (!id || !startDate || !endDate || !equipmentId || !workerId) {
         throw {
           type: 'client',
@@ -274,17 +278,19 @@ export class DatabaseService {
           ),
         };
       }
+      if (!this.checkDates({ dateStart: startDate, dateEnd: endDate })) {
+        return Promise.reject(`Dates are bad, Got ${startDate} ${endDate}`);
+      }
+
       if (!(await this.checkEquipmentAvailability(equipmentId)))
         return Promise.reject(
           'Lack of equipment for requests detected. Cannot createRequest.',
         );
-
       if (!(await this.checkDateOverlap(id, equipmentId, startDate, endDate))) {
         return Promise.reject(
           `Date overlap detected. Cannot createRequest. ${startDate}, ${endDate}`,
         );
       }
-
       await this.dbClient.query(
         'INSERT INTO REQUESTS(ID, DATE_START, DATE_END, EQUIPMENT_ID) VALUES ($1,$2,$3,$4);',
         [id, startDate, endDate, equipmentId],
@@ -298,7 +304,7 @@ export class DatabaseService {
       return Promise.reject(error);
     }
   }
-  // it doesnt update workerId
+  // if workerId is passed and not null => run reasignTasks
   async updateRequest({
     id,
     startDate,
@@ -351,7 +357,9 @@ export class DatabaseService {
     query += ` WHERE ID = $${params.length};`;
 
     if (!this.checkDates({ dateStart: startDate, dateEnd: endDate })) {
-      return Promise.reject('Dates are bad');
+      return Promise.reject(
+        `Date overlap detected. Cannot createRequest. ${startDate}, ${endDate}`,
+      );
     }
 
     try {

@@ -50,29 +50,6 @@ class Worker extends Component {
       }
     }
   };
-  onAddNewRequestLocal = ({ id, dateStart, dateEnd, equipment }) => {
-    const newRequest = {
-      id,
-      dateStart,
-      dateEnd,
-      equipment,
-      // onEditTask: this.state.onEditRequest,
-      onDeleteRequest: this.state.onDeleteRequest,
-    };
-    this.setState(prevState => ({
-      ...prevState,
-      requests: [...prevState.requests, newRequest],
-    }));
-  };
-  // Не удалять! подругому не работает. Я не придумал поумнее.
-  // React doesnt rerender... I dont now why.... In app.js worker.request changes, but it doesnt rerender ......
-  onDeleteRequestLocally({ reqId }) {
-    this.setState(prevState => ({
-      ...prevState,
-      requests: prevState.requests.filter(request => request.id !== reqId),
-    }));
-  }
-  // FIXME  test the function overlapDates from databaseModule
 
   render() {
     return (
@@ -84,26 +61,22 @@ class Worker extends Component {
       >
         <h2 className='worker__name'>{this.state.name}</h2>
         <ul className='worker__requests-list'>
-          {this.state.requests.map(request => (
+          {this.state.requests.map((request, ind) => (
             <Request
-              key={request.id}
+              key={request.equipment.id + request.dateStart + request.dateEnd}
               id={request.id}
               dateStart={request.dateStart}
               dateEnd={request.dateEnd}
               equipment={request.equipment}
-              onDeleteRequest={({ reqId }) => {
-                this.onDeleteRequestLocally({ reqId });
-                return this.state.onDeleteRequest({ reqId });
-              }}
+              onEditRequest={this.state.onEditRequest}
+              onDeleteRequest={({ reqId }) => this.state.onDeleteRequest({ reqId })}
             />
           ))}
         </ul>
         <button
           type='button'
           className='worker__add-request-btn'
-          onClick={async () => {
-            this.state.showModalAndCallback({ workerId: this.state.id, addLocal: this.onAddNewRequestLocal });
-          }}
+          onClick={async () => this.state.showModalAndCallback({ workerId: this.state.id })}
         >
           &#10010; Добавить запрос
         </button>

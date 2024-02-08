@@ -26,8 +26,8 @@ export class WorkersService {
       // Date is transformed to locale date
       const requests = rawRequests.map((request) => ({
         id: request.id,
-        dateStart: request.date_start.toLocaleDateString('ru-Ru'),
-        dateEnd: request.date_end.toLocaleDateString('ru-Ru'),
+        dateStart: request.date_start,
+        dateEnd: request.date_end,
         equipment: rawEquipment.filter(
           (equipment) => request.equipment_id === equipment.id,
         )[0],
