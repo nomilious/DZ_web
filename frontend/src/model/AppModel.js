@@ -72,20 +72,19 @@ export default class AppModel {
       'Success updateRequest'
     );
   }
-  static async editMultipleTasks({ reorderedTasks = [] }) {
-    return AppModel.fetchData('tasks', 'PATCH', { reorderedTasks }, 'Success editMultipleTasks');
-  }
   static async deleteRequest({ id = null }) {
     return AppModel.fetchData(`requests/${id}`, 'DELETE', {}, 'Success deleteTasks');
   }
-  static async moveTasks({ id = null, srcTasklistId = null, destTasklistId = null }) {
+  static async deleteWorker({ id = null }) {
+    return AppModel.fetchData(`workers/${id}`, 'DELETE', {}, 'Success deleteWorker');
+  }
+  static async moveRequest({ id = null, srcWorkerId = null, destWorkerId = null }) {
     return AppModel.fetchData(
-      'workers',
+      `workers/move/${id}`,
       'PATCH',
       {
-        id,
-        srcTasklistId,
-        destTasklistId,
+        srcWorkerId,
+        destWorkerId,
       },
       'Success moveTasks'
     );

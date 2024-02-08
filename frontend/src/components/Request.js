@@ -2,17 +2,7 @@ import React, { Component } from 'react';
 import { logDOM } from '@testing-library/react';
 
 class Request extends Component {
-  constructor({
-    id,
-    dateStart,
-    dateEnd,
-    equipment,
-    onDeleteRequest,
-    onEditRequest,
-    // onMoveTask,
-    // onEditTask,
-    // onDeleteRequest,
-  }) {
+  constructor({ id, dateStart, dateEnd, equipment, onDeleteRequest, onEditRequest, onDragStart, onDragEnd }) {
     super();
     this.state = {
       id: id || crypto.randomUUID(),
@@ -21,17 +11,10 @@ class Request extends Component {
       equipment,
       onDeleteRequest,
       onEditRequest,
+      onDragStart,
+      onDragEnd,
     };
   }
-
-  handleDragStart = evt => {
-    evt.target.classList.add('request_selected');
-    localStorage.setItem('movedTaskID', this.state.id);
-  };
-
-  handleDragEnd = evt => {
-    evt.target.classList.remove('request_selected');
-  };
 
   render() {
     return (
@@ -40,8 +23,8 @@ class Request extends Component {
         className='worker__requests-list-item request'
         id={this.state.id}
         draggable
-        onDragStart={this.handleDragStart}
-        onDragEnd={this.handleDragEnd}
+        onDragStart={this.state.onDragStart}
+        onDragEnd={this.state.onDragEnd}
       >
         <div className='request'>
           <span className='request__text request__title'>{this.state.equipment.title}</span>
@@ -61,7 +44,6 @@ class Request extends Component {
               className='request__contol-btn delete-icon'
               onClick={() => this.state.onDeleteRequest({ reqId: this.state.id })}
             ></button>
-            <p style={{ display: 'none' }}>{JSON.stringify(this.state.equipment)}</p>
           </div>
         </div>
       </li>

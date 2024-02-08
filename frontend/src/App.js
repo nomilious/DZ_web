@@ -2,9 +2,7 @@ import { useEffect, useState } from 'react';
 import AppModel from './model/AppModel';
 import Worker from './components/Worker';
 
-// TODO implement request drag&drop, fix notificcations
-// TODO run reorderTasks on task adding
-// FIXME  test the function overlapDates from databaseModule
+// TODO fix notificcations
 function App() {
   const [workers, setWorkers] = useState([]);
   const [equipment, setEquipment] = useState([]);
@@ -18,54 +16,45 @@ function App() {
       document.querySelector('.worker-adder__btn').style.display = 'inherit';
     }
   };
-  const onDropRequestIn = async evt => {
-    evt.stopPropagation();
+  const onInputKeydown = async event => {
+    if (event.key !== 'Enter') return;
 
-    const destWorkerElement = evt.currentTarget;
-    destWorkerElement.classList.remove('worker_droppable');
-
-    const movedRequestId = localStorage.getItem('movedTaskID');
-    const srcWorkerId = localStorage.getItem('srcTasklistID');
-    const destWorkerId = destWorkerElement.getAttribute('id');
-
-    localStorage.setItem('movedTaskID', '');
-    localStorage.setItem('srcTasklistID', '');
-
-    if (!destWorkerElement.querySelector(`[id="${movedRequestId}"]`)) return;
-
-    const srcWorker = workers.find(worker => worker.id === srcWorkerId);
-    const destWorker = workers.find(worker => worker.id === destWorkerId);
-
-    try {
-      if (srcWorkerId !== destWorkerId) {
-        // const res =
-        await AppModel.moveTasks({
-          id: movedRequestId,
-          srcTasklistId: srcWorkerId,
-          destTasklistId: destWorkerId,
+    if (event.target.value) {
+      const workerId = crypto.randomUUID();
+      try {
+        const res = await AppModel.addWorkers({
+          id: workerId,
+          fio: event.target.value,
         });
-        const movedRequest = srcWorker.deleteRequest({
-          taskID: movedRequestId,
-        });
-        destWorker.addRequest({ request: movedRequest });
+        console.log('added to model');
+        const newWorker = {
+          id: workerId,
+          name: event.target.value,
+          requests: [],
+        };
+        console.log('created local');
 
-        srcWorker.reorderRequests();
+        setWorkers(workers => [...workers, { ...newWorker }]);
+        // newWorker.render()
+        console.log(res);
+      } catch (error) {
+        console.error(JSON.stringify(error));
       }
-
-      destWorker.reorderRequests();
-    } catch (error) {
-      console.error(error);
     }
+    event.target.style.display = 'none';
+    event.target.value = '';
+
+    document.querySelector('.worker-adder__btn').style.display = 'inherit';
   };
   const showModalAndCallback = ({ workerId }) => {
     const modal = document.getElementById('myModal');
     modal.showModal();
     const onSubmitHandler = async () => {
-      await onSubmitAction({ workerId });
+      await submitModal({ workerId });
     };
 
     const submitListener = () =>
-      onSubmitHandler().then(r => {
+      onSubmitHandler().then(() => {
         modal.removeEventListener('submit', submitListener);
         modal.querySelector('form').reset();
       });
@@ -75,7 +64,7 @@ function App() {
     // remove eventListener if user clicks Esc
     modal.addEventListener('close', () => modal.removeEventListener('submit', submitListener));
   };
-  const onSubmitAction = async ({ workerId }) => {
+  const submitModal = async ({ workerId }) => {
     const dateStart = document.getElementById('startDate').value;
     const dateEnd = document.getElementById('endDate').value;
     const equipmentId = document.getElementById('equipmentId').value;
@@ -94,20 +83,17 @@ function App() {
       });
 
       const equipmentData = equipment.filter(equipment => equipment.id === equipmentId)[0];
-      console.log('workerId: ' + workerId);
 
       addRequest({ workerId, id, dateStart, dateEnd, equipmentData });
+      await reorderRequests();
     } catch (error) {
       console.error(error);
       return Promise.reject(error);
     }
   };
-  const convertStringToDate = (dateString, increase = false) => {
+  const convertStringToDate = dateString => {
     const parts = dateString.split('-');
     // Note: months are 0-based in JavaScript Date objects, so we subtract 1 from the month
-    if (increase) {
-      parts[2] = +parts[2] + 1;
-    }
     const jsDate = new Date(+parts[0], +parts[1] - 1, +parts[2] + 1);
     return jsDate.toISOString().substring(0, 10);
   };
@@ -115,7 +101,6 @@ function App() {
     let Worker_request = null;
     for (let worker of workers) {
       Worker_request = worker.requests.find(req => req.id === reqId);
-
       if (Worker_request) break;
     }
 
@@ -146,6 +131,7 @@ function App() {
 
           // change in the model
           updateRequest({ reqId, changedValues });
+          await reorderRequests();
         } catch (error) {
           console.log(error);
           return Promise.reject(error);
@@ -181,6 +167,20 @@ function App() {
       return Promise.reject(error);
     }
   };
+
+  const onDeleteWorker = async ({ id }) => {
+    // delete locally
+    setWorkers(prevState => {
+      return prevState.filter(worker => worker.id !== id);
+    });
+    try {
+      const res = await AppModel.deleteWorker({ id });
+      console.log(res);
+    } catch (error) {
+      console.error(error);
+      return Promise.reject(error);
+    }
+  };
   const fillModalForm = async () => {
     try {
       const equipmentData = await AppModel.getEquipment();
@@ -199,78 +199,17 @@ function App() {
       console.error('Error fillModalForm, ', e);
     }
   };
-  const dragOver = evt => {
-    evt.preventDefault();
 
-    const draggedElement = document.querySelector('.task.task_selected');
-    const draggedElementPrevList = draggedElement.closest('.worker');
-
-    const currentElement = evt.target;
-    const prevDroppable = document.querySelector('.worker_droppable');
-    let curDroppable = evt.target;
-    while (!curDroppable.matches('.worker') && curDroppable !== document.body) {
-      curDroppable = curDroppable.parentElement;
-    }
-
-    if (curDroppable !== prevDroppable) {
-      if (prevDroppable) prevDroppable.classList.remove('worker_droppable');
-
-      if (curDroppable.matches('.worker')) {
-        curDroppable.classList.add('worker_droppable');
-      }
-    }
-
-    if (!curDroppable.matches('.worker') || draggedElement === currentElement) return;
-
-    if (curDroppable === draggedElementPrevList) {
-      if (!currentElement.matches('.task')) return;
-
-      const nextElement =
-        currentElement === draggedElement.nextElementSibling ? currentElement.nextElementSibling : currentElement;
-
-      curDroppable.querySelector('.worker__tasks-list').insertBefore(draggedElement, nextElement);
-
-      return;
-    }
-
-    if (currentElement.matches('.task')) {
-      curDroppable.querySelector('.worker__tasks-list').insertBefore(draggedElement, currentElement);
-
-      return;
-    }
-
-    if (!curDroppable.querySelector('.worker__tasks-list').children.length) {
-      curDroppable.querySelector('.worker__tasks-list').appendChild(draggedElement);
-    }
-  };
-  const onInputKeydown = async event => {
-    if (event.key !== 'Enter') return;
-
-    if (event.target.value) {
-      const workerId = crypto.randomUUID();
-      try {
-        const res = await AppModel.addWorkers({
-          id: workerId,
-          fio: event.target.value,
+  const reorderRequests = async () => {
+    // reorder them locally by startDate
+    setWorkers(prevState => {
+      return prevState.map(worker => {
+        worker.requests.sort((a, b) => {
+          return new Date(a.dateStart) - new Date(b.dateStart);
         });
-        console.log('added to model');
-        const newWorker = {
-          id: workerId,
-          name: event.target.value,
-        };
-        console.log('created local');
-
-        setWorkers(workers => [...workers, { ...newWorker }]);
-        // newWorker.render()
-        console.log(res);
-      } catch (error) {
-        console.error(JSON.stringify(error));
-      }
-    }
-    event.target.style.display = 'none';
-    event.target.value = '';
-
-    document.querySelector('.worker-adder__btn').style.display = 'inherit';
+        return worker;
+      });
+    });
   };
 
   // CRUD actions in model
@@ -319,6 +258,96 @@ function App() {
         return worker;
       });
     });
+  };
+  const moveRequest = ({ srcWorkerId, destWorkerId, movedRequestId }) => {
+    setWorkers(prevState => {
+      return prevState.map(worker => {
+        if (worker.id === srcWorkerId) {
+          const updatedRequests = worker.requests.filter(request => request.id !== movedRequestId);
+          return { ...worker, requests: updatedRequests };
+        } else if (worker.id === destWorkerId) {
+          const movedRequest = prevState
+            .find(w => w.id === srcWorkerId)
+            .requests.find(request => request.id === movedRequestId);
+          const updatedRequests = [...worker.requests, movedRequest];
+          return { ...worker, requests: updatedRequests };
+        }
+        return worker;
+      });
+    });
+  };
+  const onDragStart = evt => {
+    const draggedElement = evt.target;
+    draggedElement.classList.add('request_selected');
+    localStorage.setItem('movedTaskID', draggedElement.id);
+    localStorage.setItem('srcTasklistID', draggedElement.closest('.worker').id);
+  };
+  const onDragEnd = evt => {
+    const draggedElement = evt.target;
+    draggedElement.classList.remove('request_selected');
+    localStorage.setItem('movedTaskID', '');
+    localStorage.setItem('srcTasklistID', '');
+  };
+
+  const dragOver = evt => {
+    evt.preventDefault();
+
+    // // Get the dragged element and its previous list
+    const draggedElement = document.querySelector('.request.request_selected');
+    const draggedElementPrevList = draggedElement.closest('.worker');
+
+    // // Get the current element being dragged over and its closest droppable area
+    const currentElement = evt.target;
+    let curDroppable = currentElement;
+
+    // // Get the previously highlighted droppable area
+    const prevDroppable = document.querySelector('.worker_droppable');
+
+    while (curDroppable !== document.body && !curDroppable.matches('.worker')) {
+      curDroppable = curDroppable.parentElement;
+    }
+
+    // // Highlight the current droppable area if it's different from the previous one
+    if (curDroppable !== prevDroppable) {
+      if (prevDroppable) prevDroppable.classList.remove('worker_droppable');
+      if (curDroppable.matches('.worker')) curDroppable.classList.add('worker_droppable');
+    }
+
+    // // // If not over a droppable area or dragging over the same element, exit the function
+    if (!curDroppable.matches('.worker') || draggedElement === currentElement) return;
+
+    if (curDroppable !== draggedElementPrevList) {
+      curDroppable.querySelector('.worker__requests-list').appendChild(draggedElement);
+    }
+  };
+
+  const onDrop = async evt => {
+    evt.stopPropagation();
+
+    const destWorkerElement = evt.currentTarget;
+    console.log('onDrop Event');
+    destWorkerElement.classList.remove('worker_droppable');
+
+    const movedRequestId = localStorage.getItem('movedTaskID');
+    const srcWorkerId = localStorage.getItem('srcTasklistID');
+    const destWorkerId = destWorkerElement.getAttribute('id');
+
+    localStorage.setItem('movedTaskID', '');
+    localStorage.setItem('srcTasklistID', '');
+
+    if (!destWorkerElement.querySelector(`[id="${movedRequestId}"]`)) return;
+
+    // move request in the model
+
+    moveRequest({ srcWorkerId, destWorkerId, movedRequestId });
+    await reorderRequests();
+
+    try {
+      await AppModel.moveRequest({ id: movedRequestId, srcWorkerId, destWorkerId });
+    } catch (error) {
+      console.error(error);
+      return Promise.reject(error);
+    }
   };
 
   // actions on component mount
@@ -380,17 +409,22 @@ function App() {
       <main className='app-main' id='app-main'>
         <ul className='workers-list'>
           {workers.map((worker, ind) => (
-            <Worker
-              key={worker.id + worker.requests.map(request => request.id).join('')}
-              id={worker.id}
-              name={worker.name}
-              requests={worker.requests}
-              equipment={equipment}
-              onDropRequestIn={onDropRequestIn}
-              onEditRequest={onEditRequest}
-              onDeleteRequest={onDeleteRequest}
-              showModalAndCallback={showModalAndCallback}
-            />
+            <>
+              <Worker
+                key={worker.id + worker.requests.map(request => request.id).join('')}
+                id={worker.id}
+                name={worker.name}
+                requests={worker.requests}
+                equipment={equipment}
+                onDrop={onDrop}
+                onEditRequest={onEditRequest}
+                onDeleteRequest={onDeleteRequest}
+                showModalAndCallback={showModalAndCallback}
+                onDragStart={onDragStart}
+                onDragEnd={onDragEnd}
+                onDeleteWorker={onDeleteWorker}
+              />
+            </>
           ))}
           <li className='workers-list__item worker-adder'>
             <button type='button' className='worker-adder__btn'>

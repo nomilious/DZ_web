@@ -56,6 +56,17 @@ export class WorkersController {
       return error.response;
     }
   }
+  @Patch('move/:id')
+  async moveTask(
+    @Param('id') id: string,
+    @Body() body: { srcWorkerId: string; destWorkerId: string },
+  ) {
+    try {
+      return await this.workersService.moveTask(id, body);
+    } catch (error) {
+      return error.response;
+    }
+  }
 
   @Delete(':id')
   async remove(@Param('id') id: string) {

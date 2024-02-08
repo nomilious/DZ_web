@@ -424,3 +424,21 @@ body.dark-theme {
 .app-modal button[type="submit"]:hover {
   background-color: #005ea2;
 }
+   .worker-delete-btn {
+     background-color: transparent;
+     border: none;
+     color: red;
+     cursor: pointer;
+     position: relative;
+     padding: 5px;
+     border-radius: 5%;
+   }
+
+.worker-delete-btn:hover {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.worker-delete-btn i {
+  font-size: 16px;
+}

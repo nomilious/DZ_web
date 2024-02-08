@@ -7,11 +7,14 @@ class Worker extends Component {
     id,
     name,
     requests = [],
-    onDropRequestIn,
+    onDrop,
     onEditRequest,
     onDeleteRequest,
     showModalAndCallback,
     equipment = [],
+    onDragStart,
+    onDragEnd,
+    onDeleteWorker,
   }) {
     super();
     this.state = {
@@ -19,37 +22,15 @@ class Worker extends Component {
       name,
       equipment,
       requests,
-      onDropRequestIn,
+      onDrop,
       onEditRequest,
       onDeleteRequest,
       showModalAndCallback,
+      onDragStart,
+      onDragEnd,
+      onDeleteWorker,
     };
   }
-  reorderRequests = async () => {
-    const orderedTasksIDs = Array.from(
-      document.querySelector(`[id="${this.state.id}"] .worker__tasks-list`).children,
-      elem => elem.getAttribute('id')
-    );
-    let reorderTaskInfo = [];
-
-    orderedTasksIDs.forEach((taskID, position) => {
-      const task = this.state.requests.find(task => task.taskID === taskID);
-      if (task.taskPosition !== position) {
-        reorderTaskInfo.push({ id: taskID, position });
-        task.taskPosition = position;
-      }
-    });
-    if (reorderTaskInfo.length >= 1) {
-      try {
-        await AppModel.editMultipleTasks({
-          reorderedTasks: reorderTaskInfo,
-        });
-      } catch (error) {
-        console.error(error);
-        return Promise.reject(error);
-      }
-    }
-  };
 
   render() {
     return (
@@ -57,8 +38,17 @@ class Worker extends Component {
         className='workers-list__item worker'
         id={this.state.id}
         onDragStart={() => localStorage.setItem('srcTasklistID', this.state.id)}
-        onDrop={this.state.onDropRequestIn}
+        onDrop={this.state.onDrop}
       >
+        <button
+          type='button'
+          className='worker-delete-btn'
+          onClick={() => {
+            this.state.onDeleteWorker({ id: this.state.id });
+          }}
+        >
+          Удалить
+        </button>
         <h2 className='worker__name'>{this.state.name}</h2>
         <ul className='worker__requests-list'>
           {this.state.requests.map((request, ind) => (
@@ -70,6 +60,8 @@ class Worker extends Component {
               equipment={request.equipment}
               onEditRequest={this.state.onEditRequest}
               onDeleteRequest={({ reqId }) => this.state.onDeleteRequest({ reqId })}
+              onDragStart={this.state.onDragStart}
+              onDragEnd={this.state.onDragEnd}
             />
           ))}
         </ul>

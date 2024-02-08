@@ -184,19 +184,13 @@ export class DatabaseService {
       return Promise.reject(error);
     }
   }
-  async assingRequest({
-    workerId,
-    taskId,
-  }: {
-    workerId: string;
-    taskId: string;
-  }) {
+  async assingRequest({ id, workerId }: { id: string; workerId: string }) {
     try {
-      if (!workerId || !taskId) {
+      if (!workerId || !id) {
         throw {
           type: 'client',
           error: new Error(
-            `updateWorker() wrong params (workerId: ${workerId}, taskId: ${taskId})`,
+            `updateWorker() wrong params (workerId: ${workerId}, taskId: ${workerId})`,
           ),
         };
       }
@@ -205,34 +199,34 @@ export class DatabaseService {
 
       await this.dbClient.query(
         'UPDATE WORKER SET TASKS = ARRAY_APPEND(TASKS, $1) WHERE ID = $2;',
-        [taskId, workerId],
+        [id, workerId],
       );
       await this.dbClient.query(
         'UPDATE REQUESTS SET WORKER_ID= $2 WHERE ID =$1;',
-        [taskId, workerId],
+        [id, workerId],
       );
     } catch (error) {
       console.log('Unable to assingRequest().');
       return Promise.reject(error);
     }
   }
-  async unassingRequest({ id, taskId }: { id: string; taskId: string }) {
+  async unassingRequest({ id, workerId }: { id: string; workerId: string }) {
     try {
-      if (!taskId || !id) {
+      if (!workerId || !id) {
         throw {
           type: 'client',
           error: new Error(
-            `unassingRequest() wrong params (id: ${id}, taskId: ${taskId})`,
+            `unassingRequest() wrong params (id: ${id}, taskId: ${workerId})`,
           ),
         };
       }
       await this.dbClient.query(
         'UPDATE WORKER SET TASKS = ARRAY_REMOVE(TASKS, $1) WHERE ID = $2;',
-        [taskId, id],
+        [id, workerId],
       );
       await this.dbClient.query(
         'UPDATE REQUESTS SET WORKER_ID=NULL WHERE ID =$1;',
-        [taskId],
+        [id],
       );
     } catch (error) {
       console.error(`Unable to unassingRequest(), ${error}`);
@@ -240,17 +234,17 @@ export class DatabaseService {
     }
   }
   async reassingRequest({
-    taskId,
-    src_worker_id,
-    dest_worker_id,
+    id,
+    srcWorkerId,
+    destWorkerId,
   }: {
-    taskId: string;
-    src_worker_id: string;
-    dest_worker_id: string;
+    id: string;
+    srcWorkerId: string;
+    destWorkerId: string;
   }) {
     try {
-      await this.unassingRequest({ id: src_worker_id, taskId });
-      await this.assingRequest({ workerId: dest_worker_id, taskId });
+      await this.unassingRequest({ id, workerId: srcWorkerId });
+      await this.assingRequest({ workerId: destWorkerId, id });
     } catch (error) {
       console.error(`Unable to reassingRequest(), ${error}`);
       return Promise.reject(error);
@@ -298,7 +292,7 @@ export class DatabaseService {
 
       await this.decreaseEquipmentAvailable({ equipmentId });
 
-      await this.assingRequest({ workerId, taskId: id });
+      await this.assingRequest({ workerId, id });
     } catch (error) {
       console.error(`Unable to createRequest(), ${error}`);
       return Promise.reject(error);

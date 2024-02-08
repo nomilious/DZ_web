@@ -13,6 +13,17 @@ export class WorkersService {
       return Promise.reject(error);
     }
   }
+  async moveTask(
+    id: string,
+    body: { srcWorkerId: string; destWorkerId: string },
+  ) {
+    try {
+      return await this.databaseService.reassingRequest({ id, ...body });
+    } catch (error) {
+      console.error('Error creating worker:', error);
+      return Promise.reject(error);
+    }
+  }
 
   async findAll() {
     try {
