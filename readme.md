@@ -20,7 +20,7 @@ cd frontend && npm install
 cd backend && npm install
 ```
 
-## Running the Application
+## Run the Application
 
 ```
 npm start
