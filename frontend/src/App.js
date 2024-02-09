@@ -139,7 +139,6 @@ function App() {
 
       if (Object.keys(changedValues).length > 0) {
         try {
-          console.log(changedValues);
           const res = await AppModel.updateRequest({ id: reqId, ...changedValues });
 
           // change in the model
@@ -169,8 +168,6 @@ function App() {
       if (fRequest) break;
       index++;
     }
-    console.log('needed ' + reqId);
-
     try {
       deleteRequest({ workerId: index, reqId });
       const res = await AppModel.deleteRequest({ id: reqId });
